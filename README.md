@@ -15,4 +15,4 @@ install_github("Fraternalilab/BrepPhylo", ref = "main", dependencies = TRUE)
 
 ## Examples
 
-Vignettes in [HTML](https://github/Fraternalilab/Bre) and [PDF](https://github.com/Fraternalilab/BrepPhylo/blob/main/vignettes/phylogenetic.pdf) formats are provided here.
+Vignettes in [HTML](http://htmlpreview.github.io/?https://github.com/Fraternalilab/BrepPhylo/blob/main/vignettes/phylogenetic.html) and [PDF](https://github.com/Fraternalilab/BrepPhylo/blob/main/vignettes/phylogenetic.pdf) formats are provided here.
