@@ -27,7 +27,7 @@ msaPrettyPrint_extended <- function (x, y, output = c("pdf", "tex", "dvi", "asis
   xname <- deparse(substitute(x))
   output <- match.arg(output)
   if (is.null(file)) {
-    if (length(grep("[^\\w]", xname, perl = TRUE)) > 0) {
+    if (length(grep("[^\\w.-\\/]", xname, perl = TRUE)) > 0) { # JN: change to agree with line 162 below.
       warning("Cannot use default file name '", xname,
               ".", output, "' because it would contain invalid characters => ",
               "resorting to 'msaPrettyPrintOutput.", output,
@@ -159,7 +159,7 @@ msaPrettyPrint_extended <- function (x, y, output = c("pdf", "tex", "dvi", "asis
     if (substr(file, nchar(file) - 2, nchar(file)) != output)
       stop("The file name suffix and output type do not match!")
     jobname <- substr(file, 1, nchar(file) - 4)
-    if (length(grep("[^\\w-/\\\\:.]", jobname, perl = TRUE)) >
+    if (length(grep("[^\\w.-\\/]", jobname, perl = TRUE)) > # CM originally has grep("[^\\w-/\\\\:.]", jobname, perl = TRUE) but it doesn't work and I can't figure out what is being achieved so I change to anything outside of alphanumeric, dot, backslash, hyphen
         0) {
       warning("Cannot use file name '", file, "' because it contains invalid characters => \n",
               "resorting to 'msaPrettyPrintOutput.", output,

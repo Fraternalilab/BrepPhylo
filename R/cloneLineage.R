@@ -2,7 +2,7 @@
 #'
 #' @param input Matrix / data frame with values.
 #' @param outputFolder Parent folder, in which the clones are to be deposited.
-#' @param species Either "Human", "Bos_taurus", "Mus_musculus" or "Gallus_gallus" (default: "Human").
+#' @param species Either "Bos_taurus", "Gallus_gallus", "Homo_sapiens", "Mus_musculus", "Oryctolagus_cuniculus", "Sus_scrofa." (default: "Homo_sapiens").
 #' @param minCloneSize Minimum clone size to be considered, clones with less members are not processed (default: 10).
 #' @param whichClones If not \code{NULL} but a vector of clone IDs (must match the levels in column "cloneIdColumn"), only these clones are considered. Note, that parameter \code{minCloneSize} is still in effect.
 #' @param ignoreClones This parameter can be set to one of the following:
@@ -24,7 +24,7 @@
 #' @param germlineIdColumn Name of column holding the germline identifier (default: "V.GENE.and.allele").
 #' @param germlineSet Optional, filepath pointing to a FASTA file containing germline sequences to be used.
 #' @param algorithm Either "ClustalOmega" or "ClustalW" (pretty slow, though), specifying the alignment algorithm (default: "ClustalOmega").
-#' @param plotType Either "phylogram", "cladogram", "fan" or "radial", specifying the layout of the phylogenetic tree (default: "fan").
+#' @param plotType Either "phylogram", "cladogram", "fan" or "radial", specifying the layout of the phylogenetic tree (default: "phylogram").
 #' @param plotFormat Either 'png' or 'pdf'. (default: 'png')
 #' @param gatherPlots If \code{TRUE}, the generated plots will be copied from the individual clone folders to a folder "plots" in the output directory (default: \code{TRUE}).
 #' @param useTempDir If \code{TRUE}, generate temporary directory and write results there. (default: \code{TRUE})
@@ -41,7 +41,7 @@
 #' @examples
 #' \dontrun{ cloneLineage <- function( input = input,
 #'                           outputFolder = "~/Desktop/out",
-#'                           species = "Human",
+#'                           species = "Homo_sapiens",
 #'                           minCloneSize = 300,
 #'                           colourSpecification = list( colours = list( "IgA" = "#0000FF",
 #'                                                                       "IgG" = "#FF0000",
@@ -87,7 +87,7 @@ cloneLineage <- function( input,
                           labelColumn = NULL,
                           germlineSet = NULL,
                           algorithm = "ClustalOmega",
-                          plotType = "fan",
+                          plotType = "phylogram",
                           plotFormat = "png",
                           gatherPlots = TRUE,
                           useTempDir = TRUE,
@@ -101,7 +101,7 @@ cloneLineage <- function( input,
   #       which in turn are named lists, where the IMGT V gene is the key and the nucleic acid sequence the value.
   #       For example: Vgermline <- list( "Human" = list( "IGHV1-1*1" = "acagatgactagctagtact", <and so on>
   #       The object can then be exported to overwrite the original one using: usethis::use_data( Vgermline, internal = FALSE, overwrite = TRUE )
-  Vgermline_gapped <- NULL
+  
   # check input
   if( any( !( c( colourSpecification[[ "coloursColumn" ]], sequenceColumn, cloneIdColumn, germlineIdColumn ) %in%
               colnames( input ) ) ) )
@@ -128,18 +128,50 @@ cloneLineage <- function( input,
     stop( "germlineSet is not NULL but the supplied file does not exist." )
   if( !plotFormat %in% c("png", "pdf"))
     stop( "plotFormat must be either 'png' or 'pdf'." )
+  if( !is.list( treeConstruction ) )
+    stop( "'treeConstruction' should be a list. See documentation for details." )
+  if( ! "type" %in% names( treeConstruction ))
+    stop( "'type' must be one of the item names in the list 'treeConstruction'. See documentation for details." )
+  if( ! treeConstruction$type %in% c( "simple", "dnapars", "igphyml" ) )
+    stop( "'type' in 'treeConstruction' must be any one of: 'simple', 'dnapars' or 'igphyml'." )
   if( treeConstruction$type == "dnapars" ){
-    dnapars_path <- as.character( Sys.which( names = "dnapars" ) )
-    if( !file.exists( dnapars_path ) )
-      stop( paste0( c( "Could not find dnapars executable. If installed, make sure you append the path to the",
-                       " executable, e.g. in linux:\necho \"export PATH=$PATH:<path>/exe\" >> ~/.bash_profile\n",
-                       "where <path> is the full path to the phylip folder with the\nsubfolder \"exe\" containing",
-                       " the phylip executables.\n") ) )
+    if( "executable" %in% names( treeConstruction$parameters ) ){
+      dnapars_path <- treeConstruction$parameters$executable
+      if( !file.exists( dnapars_path )){
+        stop( paste0( c( "Could not find dnapars executable. Have you indicated the correct path?\n",
+                         "If you have installed the software system-wide you can omit indication of 'executable'",
+                         " in treeConstruction parameters - the function will automatically look for it.\n") ) )
+      }
+    } else {
+      dnapars_path <- as.character( Sys.which( names = "dnapars" ) )
+      if( !file.exists( dnapars_path ) )
+        stop( paste0( c( "Could not find dnapars executable. If installed, make sure you append the path to the",
+                         " executable, e.g. in linux:\necho \"export PATH=$PATH:<path>/exe\" >> ~/.bash_profile\n",
+                         "where <path> is the full path to the phylip folder with the\nsubfolder \"exe\" containing",
+                         " the phylip executables.\n") ) )
+    }
     if( "collapseAndReplace" %in% names( treeConstruction$parameters ) ){
       if( ! treeConstruction$parameters$collapseAndReplace %in% c(TRUE, FALSE) ){
         stop("\"collapseAndReplace\" parameter in \"treeConstruction\" must be either TRUE or FALSE.")
       } else collapseAndReplace <- treeConstruction$parameters$collapseAndReplace
     } else collapseAndReplace <- TRUE
+  }
+  if( treeConstruction$type == "igphyml" ){
+    if( "executable" %in% names( treeConstruction$parameters ) ){
+      igphyml_path <- treeConstruction$parameters$executable
+      if( !file.exists( igphyml_path )){
+        stop( paste0( c( "Could not find dnapars executable. Have you indicated the correct path?\n",
+                         "If you have installed the software system-wide you can omit indication of 'executable'",
+                         " in treeConstruction parameters - the function will automatically look for it.\n") ) )
+      }
+    } else {
+      igphyml_path <- ""
+    }
+    if( "accuracy" %in% names( treeConstruction$parameters ) ){
+      if( ! treeConstruction$parameters$accuracy %in% c("basic", "high", "extreme") ){
+        stop("\"accuracy\" parameter in \"treeConstruction\" must be any one of 'basic', 'high' or 'extreme'.")
+      } 
+    } else treeConstruction$parameters$accuracy <- "basic"
   }
   
   # If germlineSet is supplied and the file exists, use this and initialise Vgermline
@@ -380,7 +412,8 @@ cloneLineage <- function( input,
         IgPhyML <- IgPhyML( path = pathFASTA,
                             root = germlineToUse,
                             accuracy = treeConstruction[[ "parameters" ]][[ "accuracy" ]],
-                            log = curClone_log,
+                            log = curClone_log, 
+                            executable = igphyml_path,
                             useTempDir = useTempDir)
 
         if( !IgPhyML[[ "success" ]] )

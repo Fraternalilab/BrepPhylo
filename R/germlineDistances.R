@@ -83,8 +83,8 @@ summariseGermlineDistance <- function(distFromGermline, dist_column = "dist",
   }
   distFromGermline_median <- ddply(distFromGermline,
                                    .variables = summarise_variables,
-                                   summarise,
-                                   dist_median = median(plyr::as.quoted(dist_column), na.rm = TRUE))
+                                   colwise(median, as.quoted(dist_column), na.rm = TRUE))
+  colnames( distFromGermline_median )[ ncol( distFromGermline_median ) ] <- "dist_median"
   distFromGermline_median$dist_median <- getDistPercentile(
     distFromGermline_median$dist_median,
     quantile(distFromGermline[, dist_column], probs = seq(0.01, 1, by = 0.01))

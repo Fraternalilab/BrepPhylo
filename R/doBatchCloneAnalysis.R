@@ -11,7 +11,8 @@
 #' @param IGHVgeneandallele_column character, column name in \code{inputDF} which holds annotated germline V gene names. (default: "V.GENE.and.allele")
 #' @param germlineSet Optional, filepath pointing to a FASTA file containing germline sequences to be used. (default: NULL)
 #' @param plotFormat Either 'png' or 'pdf' (default: 'png')
-#' @param phyloTreeType "simple", "dnapars" or "igphyml". "simple" refers to a neighbour-joining tree; "dnapars" constructs a maximum parsimony tree using the phylip "dnapars" program (a local installation of the program is required). "igphyml" constructs a maximum likelihood tree taking into account mutational hotspot contexts in immunoglobulins, but is the most time consuming. (default: "dnapars").
+#' @param phyloTreeType "simple", "dnapars" or "igphyml". "simple" refers to a neighbour-joining tree; "dnapars" constructs a maximum parsimony tree using the phylip "dnapars" program (a local installation of the program is required). "igphyml" constructs a maximum likelihood tree taking into account mutational hotspot contexts in immunoglobulins, but is the most time consuming. (default: "dnapars")
+#' @param phyloTreeOptions A list to be fed as the 'parameter' entry in the \code{treeConstruction} argument of the \code{cloneLineage} function (see documentation of the \code{cloneLineage} function). If \code{NULL}, default settings will be used. (default: \code{NULL})
 #' @param makeArboTree Should arborescence tree be calculated? (default: TRUE)
 #' @param useTempDir If \code{TRUE}, generate temporary directory and write results there. (default: \code{TRUE})
 #'
@@ -38,6 +39,7 @@ doBatchCloneAnalysis <- function( inputDF,
                                   germlineSet = NULL,
                                   plotFormat = "png",
                                   phyloTreeType = "simple",
+                                  phyloTreeOptions = NULL,
                                   makeArboTree = TRUE,
                                   useTempDir = TRUE)
 {
@@ -79,12 +81,17 @@ doBatchCloneAnalysis <- function( inputDF,
     output[[ as.character( vecCloneIDs[ iClone ] ) ]] <- list()
     
     # run the tree reconstruction by calling IgPhyML
+    if( !is.null( phyloTreeOptions ) ){
+      params = phyloTreeOptions
+    }
     if( phyloTreeType == "igphyml" ){
+      if( is.null( phyloTreeOptions )) params <- list( "accuracy" = "basic")
       tree_type <- list( "type" = "igphyml",
-                         "parameters" = list( "accuracy" = "basic") )
+                         "parameters" = params)
     } else if( phyloTreeType == "dnapars" ){
+      if( is.null( phyloTreeOptions )) params <- list( "collapseAndReplace" = TRUE )
       tree_type <- list( "type" = "dnapars", 
-                         "parameters" = list( "collapseAndReplace" = TRUE ) )
+                         "parameters" =  params)
     } else {
       tree_type <- list( "type" = "simple" )
     }
@@ -168,7 +175,7 @@ doBatchCloneAnalysis <- function( inputDF,
         arbo_tree <- NULL
         csr_events <- NULL
       }
-      tree <- ape::read.tree( tree )
+      # tree <- ape::read.tree( tree )
       distances <- getGermlineDistance( tree )
       output[[ as.character( vecCloneIDs[ iClone ] ) ]] <- list( distances = distances,
                                                                  csr_events = csr_events )

@@ -4,12 +4,12 @@ author:
   - "Joseph Ng"
 date: '`r Sys.Date()`'
 output:
-  pdf_document:
-    fig_width: 12
-    number_sections: yes
   html_document:
     fig_width: 12
     highlight: pygments
+    number_sections: yes
+  pdf_document:
+    fig_width: 12
     number_sections: yes
 csl: nar-webserver-issue.csl
 bibliography: bibliography.bib
@@ -32,16 +32,40 @@ knitr::opts_knit$set(
 )
 ```
 
-# Phylogeny for B cell clones
-The immune system has a plethora of naive B cells ready at any given time to respond to a new challenge. The receptor on the surface of the B cell that recognises a target antigen is known as a B cell receptor (BCR) and is encoded by immunoglobulin genes. The same genes are used to produce secreted antibody by terminally differentiated B cells. Immunoglobulin heavy chains have a Variable region, conferring antigen specificity, and a constant region, conferring functionality. A few B cells will interact with a newly presented epitope (e.g. on the surface of a virus particle) and become activated. Upon activation, these cells proliferate and undergo *affinity maturation* to further enhance their affinity and specificity for the given target. During this, the DNA sequences of the Variable region (mainly the CDRs) will be mutated and starting from one precusor B cell, a *clone* will emerge with sequence variations. These clones can be clustered [^clonotype_clustering] by comparing CDR3 sequences, since the diversity of Variable regions is so high that a particular CDR3 region is a fingerprint that can be used to identify lineages. However, in order to infer the relationship between observations, phylogenetic analysis has to be done. The final products of this vignette are phylogenetic and arborescence trees [@mesbahimehran_graph_2010] for a set of clones. We also implemented tree metrics to summarise their topologies to facilitate comparisons of a large number of clones.
+# Background: B cell lineages
 
-[^clonotype_clustering]: This can be done in various ways. The in-house package `BrepClustering` implements our own technique based on clustering (heavy chain-derived) sequences using a user-specified threshold and the Levenshtein distance. Users can nevertheless use their preferred clonotype clustering method - our input formats are flexible and expect only a input table with clone identifiers as one of the columns.
+Immunoglobulins produced by B cells are constantly modified in order to optimise their function. One aspect of their function is to recognise antigens the immune system encounters during an infection; this is achieved with the '*variable region*' of immunoglobulins, where mutations can be introduced to enhance the affinity and specificity towards the given target, during a proces called *affinity maturation*. Immunoglobulin sequences can be clustered by observing similarities of the variable region to obtain *clonotypes*[^clonotype_clustering]: all sequences within a clonotype have similar sequences and therefore should target one specific part of an antigen. It is however also interesting to consider differences between sequences that come from the same clonotype, as this knowledge allow us to learn how this lineage of B cells optimises its variable region throughout its response to the immune challenge. This typically involves the reconstruction of *lineage trees* that connect every observation in the clonotype with its germline 'root' of the tree. Analysis of such lineage tree would reveal details of the evolution of a given B cell clonotype in immune response.
 
-## Class switching
-Clones are usually established by considering the variable region, but immunoglobulins can also switch their (sub-)class during maturation. Effectively, this means the exchange of the constant region of an antibody to allow for a different effector function. Currently, it is thought that this exchange has no impact on the binding affinity / specificity of the Variable region; however these class-switching events are nevertheless important to consider as they would affect e.g. the efficacy of invoking downstream signaling. A noteworthy restriction of class-switching is its directionality: mechanistically it involves excisions of DNA segments from the genome which leads to an ever decreasing pool of potential (sub-)classes. It is the order of the constant region genes that determines whether a suspected transition is genetically possible, e.g. A1 -> G2, G2 -> E and D -> A1 are possible, while A1 -> G1 is not. The ordering used in this R package to assess validity is for the human genome as follows: germline -> M -> D -> G3 -> G1 -> A1 -> G2 -> G4 -> E -> A2. While not part of the phylogenetic tree reconstruction (see explanation below), this is a crucial constraint in the construction of an arborescence tree. Also note that unlike other cases of phylogenetic reconstruction, here we are in the rare position to properly identify a "true" root, the germline sequence - a piece of information, that can be included if available.
+Another aspect of immunoglobulin function is to initiate cascade of events in order to orchestrate an effective response towards the immune challenge, e.g. by engaging in interactions with other cell types in the immune system. This aspect of function depends on the '*constant region*' of the immunoglobulin molecule. A lineage of B cells can 'switch' their constant regions to trigger different downstream effects; this process is known as Class-Switch Recombination (CSR). CSR is irreversible and uni-directional: mechanistically it involves excisions of DNA segments from the genome which leads to an ever decreasing pool of potential 'destination' options of constant region genes. Therefore the physical arrangement of the genes encoding different constant regions determines whether a switch is possible. Traditionally the constant region is less well-sampled in sequencing studies of immunoglobulin repertoires; conventional lineage reconstruction methods do not consider the constant region. Knowledge of CSR, however, could be used to evaluate the reconstructed lineage trees, as well as to infer the dynamics and interplay between CSR and affinity maturation.
 
-# Building a phylogenetic tree for a B cell clone
-The following example assumes, that clonotype clustering has already been performed and unique identifiers are given in column `CloneID` (observations with the same integer number are considered part of the same clone). The observations can be labelled, both by colour (here, the (sub-)class stated in column `Subclass`) and by the tip-label (here, the sequence identifier in column `Seq_ID`). The latter is optional. Column `V.GENE.and.allele` is used to identify the original germline (as annotated by [IMGT V-QUEST](http://www.imgt.org/IMGTindex/V-QUEST.php) [@brochet_imgt_v-quest_2008]): For IMGT, the germline sequences for several species have been in-built into this package and can be readily used within this workflow.
+The `BrepPhylo` package contains a set of functions written for the purpose of performing lineage reconstruction of a large number of B cell clonotypes obtained via high-throughput sequencing of immunoglobulin repertoires. The aim is to provide functionalities as 'wrappers' around popular, existing tools for lineage reconstruction, provide functionalities to detect CSR events from lineage trees, and provide easy-to-interpret output to analyse these lineages.  
+
+In this vignette, we first demonstrate case studies where a few ($n=3$) clonotypes of interest are analysed for lineage reconstruction and showcase the graphical and analytical output of the `BrepPhylo` package. We then show how to wrap these functionalities into a pipeline to apply to a large number of clonotypes. This yields an automatic analysis of all lineages obtained from sequencing immunoglobulin repertoire which could be incorporated into general pipelines of repertoire data processing and mining.
+
+[^clonotype_clustering]: This can be done in various ways. We have established protocols which is available on the [BRepertoire](http://mabra.biomed.kcl.ac.uk/BRepertoire) web-server. Users can nevertheless use their preferred clonotype clustering method - our input formats are flexible and expect only a input table with clone identifiers as one of the columns.
+
+# Installation
+
+To install the `BrepPhylo` package, in R do:
+
+```{r, eval=FALSE}
+require(devtools)
+install_github("Fraternalilab/BrepPhylo", ref = "main", dependencies = TRUE)
+```
+
+Note above should install `BrepPhylo` itself as well as its dependencies. You might encounter issues related to the package `sf` which is the dependency of one of the packages we import. Following [these instructions](https://r-spatial.github.io/sf/#installing) from `sf` to resolve these issues.
+
+`BrepPhylo` also uses phylogenetics packages [`PHYLIP`](https://evolution.gs.washington.edu/phylip/) and [`IgPhyML`](https://igphyml.readthedocs.io/en/latest/overview.html). Please follow the respective documentation pages to install these packages if you wish to use them through `BrepPhylo` functions. We included the relevant `PHYLIP` executable (`dnapars`) we used in `BrepPhylo` in the package so you don't have to install this by yourself; this executable should work on MacOS and Linux systems; see examples below for instructions on how to source this executable.
+
+# Targeted lineage analysis of a small number of B cell clonotypes
+
+## Input data
+
+`BrepPhylo` assumes a table has been generated to hold sequences and annotations of immunoglobulins observed from sequencing studies of B-cell repertoire. This could typically be obtained by, e.g. the [IMGT/HighV-QUEST](http://www.imgt.org/HighV-QUEST/) [@brochet_imgt_v-quest_2008] webserver. Its output can be readily analysed as spreadsheets, or by using dedicated tools such as [BRepertoire](http://mabra.biomed.kcl.ac.uk/BRepertoire). Below are additional annotations required on top of the IMGT/HighV-Quest output:
+
+1. **Clonotype clustering**: we assume that clustering of clonotypes has already been performed on sequences. We used our protocols which is available on BRepertoire. Equivalently users can use clonotype clustering procedures of their choice such as those implemented in [Change-O](https://changeo.readthedocs.io/en/stable/), the `cellranger vdj` pipeline (if your repertoire data originate from a single-cell experiment using the 10X Genomics protocols) etc. The minimum requirement is an additional column detailing the identifier of clonotypes each sequence is mapped to. Here in our example, unique identifiers are given in column `CloneID` (observations with the same integer number are considered part of the same clone).
+
+2. **Constant region**: we also require that the constant region of each sequence can be assigned, down to the level where different antibody 'subclasses' can be distinguished (e.g. IgG1, IgG2, ... - rather than only 'IgG'). In our examples we have the columns `Class` and `Subclass`. These annotations are used for both labelling purposes (in graphical representations of lineage trees), and for analysing CSR events.
 
 ## Load data
 
@@ -56,14 +80,16 @@ input <- read.csv( system.file( "extdata/input.csv",
 # select only the columns that are needed
 input <- input[ , c( "PatientID", "Class", "Subclass",
                      "CloneID", "Seq_ID", "UseAsRef",
-                     "Vgene", "V_gapped" ) ]
+                     "V.GENE.and.allele", "V_gapped" ) ]
 # 'V_gapped' is the gapped VDJ DNA sequence
+
+# generate an output folder to store results running this vignette
+outputFolder <- path.expand( "~/Desktop/BrepPhylo-example" )
+dir.create( outputFolder, showWarnings = FALSE )
+
 ```
 
 ```{r, eval = TRUE, message = TRUE}
-# print structure
-str( input )
-
 # print first rows (without the sequence)
 tibble::as_tibble( head( input ) )
 
@@ -76,19 +102,24 @@ In this example, it is evident that the members of clone 3 of patient CV233 show
 
 ## Construct phylogenetic trees and PDF alignments for selected clones
 
-Function `cloneLineage` takes a clone and constructs a phylogenetic tree from it. Internally, a distance matrix is constructed. There are two options available (in this package) on how to estimate the distances between observations (sequences): Either using a "simple" (standard exchanges) or a more sophisticated model that has been optimized for the use in B cell lineages, implemented in the [IgPhyML program](http://evolve.zoo.ox.ac.uk/Evolve/IgPhyML.html) [@hoehn_phylogenetic_2017]. For `IgPhyML`, three levels of accuracy can be specified (see manual page of function `IgPhyML`).
+Function `cloneLineage` takes a clone and constructs a lineage tree to show phylogenetic relationships between sequences and the annotated germline. This problem has been explored extensively in the literature and a variety of methods exist to reconstruct lineage trees. At the moment this function supports three methods:
+
+* **'simple'**: a neighbour-joining (NJ) tree. Internally a distance matrix between sequences is constructed for the NJ algorithm to provide a solution. This can be viewed as a 'quick-and-dirty' way of lineage reconstruction; the output tree represents only one of the many possible solutions, and may not conform to assumptions inherent in the development of immunoglobulin lineages.
+* **'dnapars'**: a maximum parsimony tree constructed using the `dnapars` program in the popular phylogenetics package `PHYLIP`. **This is the default method used in the cloneLineage function.** In our experience this is superior to the 'simple' NJ method above without compromising too much on efficiency (such that it is still feasible to apply to a large number of clonotypes).
+* **'igphyml'**: a maximum likelihood tree constructed using the [IgPhyML](https://igphyml.readthedocs.io) program [@hoehn_phylogenetic_2017]. This implements codon-specific substitution model aware of mutational preferences in somatic hypermutation, so theoretically this is best suited to be applied to immunoglobulin sequences. However the run-time of IgPhyML is significantly longer than the other two modes (see Appendix of this vignette), rendering this not too feasible to generate lineage trees for a large number of clonotypes. *Note:* this is kept as an legacy option. Active development and debugging has stopped for runs using the `igphyml` mode.
 
 ### Sequence format and germline database
 
-We support either ungapped version of VDJ sequences, or a gapped version provided from IMGT/V-Quest. Tree inference requires identification of a germline sequence as root. We offer flexibility depending on the data you are working with:
+We support either ungapped or gapped (according to the IMGT nomenclature) version of V-gene sequences provided by IMGT/V-Quest. Tree inference requires identification of a germline sequence as root. We offer flexibility depending on the data you are working with:
 
-* By default, our package provides databases of *both* gapped and ungapped germline sequence for the following species: `Humans, Bos_taurus, Gallus_gallus, Mus_musculus, Oryctolagus_cuniculus, Sus_scrofa`. You can specify your species in the parameter `species` in calling `cloneLineage()`.
-* If you work on other species, and/or you would like to use a germline sequence set of your choice, you can pass the FASTA file containing such sequences using the parameter `germlineSet` in calling `cloneLineage()`. If you opt for this option, remember the germline sequence set **must** match VDJ sequences in the submitted data frame in terms of gapping. If e.g. the VDJ sequences are IMGT-gapped but the germline sequence set is not, the function will return an error message. IMGT germline sequences can easily be downloaded from the IMGT website ([IMGT/Gene-DB](http://www.imgt.org/genedb/) for flexible selection of sequence sets, or [IMGT reference directory](http://www.imgt.org/download/V-QUEST/) for IMGT-gapped sequences for each gene locus of a given species). 
+* By default, our package provides databases of *both* gapped and ungapped germline sequence for the following species: `Homo_sapiens, Bos_taurus, Gallus_gallus, Mus_musculus, Oryctolagus_cuniculus, Sus_scrofa`. You can specify your species in the parameter `species` in calling `cloneLineage()`.
+* If you work on other species, and/or you would like to use a germline sequence set of your choice, you can pass the FASTA file containing such sequences using the parameter `germlineSet` in calling `cloneLineage()`. If you opt for this option, remember the germline sequence set **must** match V-gene sequences in the submitted data frame in terms of gapping. If e.g. the sequences are IMGT-gapped but the germline sequence set is not, the function will return an error message. IMGT germline sequences can easily be downloaded from the IMGT website ([IMGT/Gene-DB](http://www.imgt.org/genedb/) for flexible selection of sequence sets, or [IMGT reference directory](http://www.imgt.org/download/V-QUEST/) for IMGT-gapped sequences for each gene locus of a given species). 
 * Please note that the parameter `species` needs to match the naming system in the germline sequence set. If you use the default in-built germlines, please refer to the first point for allowed species names. If you use your own germline sequence set, sequences downloaded from IMGT are named by the binomial nomenclature (i.e. "Homo sapiens", "Mus musculus" etc. - notice space instead of "_") - this should be specified in the `species` argument. 
 
-Germline sequence will be selected for each clone automatically by taking the allele annotated for most of the sequences in the given clone.
+Germline sequence will be selected for each clone automatically by taking the allele annotated for most of the sequences in the given clone. If gapped sequences are submitted, sequences will be processed obeying the IMGT gaps. If ungapped sequences are submitted, ClustalOmega will be called to generate a multiple sequence alignment of the given clone with the assigned germline, prior to feeding these to the tree construction programs of choice.
 
 ### Expected output
+
 The `cloneLineage()` function generates the following files in a specified folder, where "ID" is the clone ID and "X" denotes the parts of the alignment (in case it exceeds more than maximum of 80 sequences):
 
 * One folder called "clone_ID" for every clone considered, including:
@@ -106,20 +137,22 @@ The `cloneLineage()` function generates the following files in a specified folde
 * File "parameters.log", holding the parameter values for the call of function `cloneLineage()`.
 
 ```{r, eval = TRUE, message = FALSE}
-# specify a set of the three largest clones for illustrative purposes
-vecClones <- c( "180",  # 416 members
-                "186",  # 162 members
-                "188" ) #  88 members
+# here for illustrative purposes we select 3 clones of different sizes from patient CV233
+vecClones <- c( "1284",  # 715 members
+                "1548",  # 109 members
+                "4279" ) #  22 members
+selected_input <- input[ which( input$PatientID == "CV233" ), ]
 
 # generate an output folder on the desktop
-# note, that a temporary folder might do just as fine
-outputFolder <- path.expand( "~/Desktop/cloneLineage" )
+outputFolder <- path.expand( "~/Desktop/BrepPhylo-example/cloneLineage" )
 dir.create( outputFolder, showWarnings = FALSE )
 
+dnapars_executable <- system.file( "exe/dnapars", package = "BrepPhylo" )
+
 # run the tree reconstruction
-cloneLineage( input = input,
+cloneLineage( input = selected_input,
               outputFolder = outputFolder,
-              species = "Humans",
+              species = "Homo_sapiens",
               whichClones = vecClones,
               colourSpecification = list( colours = list( "M" = "#FF0000",
                                                           "D" = "#FF00FF",
@@ -131,86 +164,59 @@ cloneLineage( input = input,
                                                           "IgG4" = "#CBFF99" ),
                                           coloursColumn = "Subclass",
                                           germlineColour = "#AAAAAA" ),
-              sequenceColumn = "sequence_alignment",
+              sequenceColumn = "V_gapped",
               cloneIdColumn = "CloneID",
               germlineIdColumn = "V.GENE.and.allele",
               labelColumn = "Seq_ID",
-              treeConstruction = list( "type" = "simple" ),
+              plotType = "phylogram",
+              treeConstruction = list( type = "dnapars", 
+                                       parameters = list( "executable" = dnapars_executable ) ),
               makeAlignmentPDFConstruction = list( "makeAlignmentPDF" = TRUE ) )
 ```
 
-```{r, echo = FALSE, fig.cap = "Clone 188, 88 members, phylogenetic tree (simple model)", out.width = "100%"}
-knitr::include_graphics( paste0( path.expand( "~/Desktop/cloneLineage" ), "/clone_188/clone_188.png" ) )
+```{r, echo = FALSE, fig.cap = "Clone 1548, 109 members, lineage tree reconstructed using dnapars", out.width = "100%"}
+knitr::include_graphics( paste0( path.expand( "~/Desktop/BrepPhylo-example/cloneLineage" ), "/clone_1548/clone_1548.png" ) )
 ```
 
-![Clone 188, 88 members, sequence alignment (excerpt)](figures/phylogenetic/clone_188_part_1.png)
+![Clone 1548, 109 members, sequence alignment (excerpt)](figures/phylogenetic/clone_1548_part_1.png)
 
-### Use IgPhyML for tree inference
-In general, it is recommended to use function `IgPhyML` to generate the trees. However, this can be very costly (see below). Nevertheless, this implements codon-specific substitution model aware of mutational preferences in somatic hypermutation, therefore it is preferred for phylogenetic inferences for B-cell repertoire data.
+One can see there is a variability in terms of how close each sequence is to the root (depicted bottom left of the tree) of the tree, i.e. the germline sequence. This distance signifies the similarity of each sequence to germline: a larger distance means a lower similarity, implying more mutations could be observed in this sequence. 
 
-```{r, eval = TRUE, message = FALSE}
-# generate an output folder
-outputFolder <- path.expand( "~/Desktop/IgPhyML" )
-dir.create( outputFolder, showWarnings = FALSE )
+The function `getGermlineDistance` calculates the distance-from-germline for all observations in a lineage:
 
-# run the tree reconstruction
- cloneLineage( input = input,
-               outputFolder = outputFolder,
-               species = "Humans",
-               whichClones = "188",
-               colourSpecification = list( colours = list( "M" = "#FF0000",
-                                                           "D" = "#FF00FF",
-                                                           "IgA1" = "#9999CF",
-                                                           "IgA2" = "#000088",
-                                                           "IgG1" = "#326600",
-                                                           "IgG2" = "#58B200",
-                                                           "IgG3" = "#8BFF19",
-                                                           "IgG4" = "#CBFF99" ),
-                                           coloursColumn = "Subclass",
-                                           germlineColour = "#AAAAAA" ),
-               sequenceColumn = "sequence_alignment",
-               cloneIdColumn = "CloneID",
-               germlineIdColumn = "V.GENE.and.allele",
-               labelColumn = "Seq_ID",
-               treeConstruction = list( "type" = "igphyml",
-                                        "parameters" = list( "accuracy" = "basic") ),
-               makeAlignmentPDFConstruction = list( "makeAlignmentPDF" = TRUE ) )
+```{r}
+# for clone 1548
+tree <- "~/Desktop/BrepPhylo-example/cloneLineage/clone_1548/clone_1548.tree"
+germline_distance <- getGermlineDistance( tree )
+tibble::as_tibble( head( germline_distance ) )
 ```
 
-Note, that `IgPhyML` has two important restrictions on the input data:
-
-+ The sequences must contain full codons (i.e. the overall number of nucleic acids needs to be an integer multiple of 3). This is required, as the different weights for the positions are taken into account (rather than using "just" inter-sequence distances measures in a naive model).
-+ In addition, STOP codons are not allowed.
-
-If gapped VDJ sequences are submitted, sequences will be processed obeying the IMGT gaps. If ungapped sequences are submitted, ClustalOmega will be called to generate a multiple sequence alignment of the given clone with the assigned germline. 
-
-If sequences are not compliant with the length requirement, the last `x` residues are are cut off prior to the calculation. One STOP codon is allowed (and will be removed), but more than that lead to the exclusion of this sequence from the workflow. Thus, it can happen that not all observations are present in all analysis tasks using `IgPhyML`. This could be improved. Also, it is imperative that the sequences that are fed into `IgPhyML` are compliant with the program's expectations.
-
-```{r, echo = FALSE, fig.cap = "Clone 188, 88 members, phylogenetic tree (using function `IgPhyML()`, accuracy set to `basic`)", out.width = "100%"}
-knitr::include_graphics( paste0( path.expand( "~/Desktop/IgPhyML" ), "/clone_188/clone_188.png" ) )
-```
+We find that these distance-from-germline calculations can be used to summarise the overall germline likeness of a repertoire (see below), which is a useful metric to assess the relevance of germinal centre reaction in shaping the development of this lineage.
 
 ## Construct an arborescence tree for a B cell clone
-The phylogenetic tree built above does not allow directly to infer class-switching events, as the internal nodes are unknown (and thus, their class). However, function `cloneArborescence` calculates an arborescence tree which makes that possible. Here, we consider the phylogenetic tree as a directed network, and generates a [minimum spanning tree](https://en.wikipedia.org/wiki/Minimum_spanning_tree) starting from the germline sequence. Using [Edmonds' algorithm](https://en.wikipedia.org/wiki/Edmonds%27_algorithm), a tree is built satisfying the following requirements: (i) it obeys genetic plausibility (see above), (ii) the germline is set to be the true root node, (iii) all (directed) edges lead away from the root and (iv) a node has only one parent node. This approach has several weaknesses, most critically it places observations at internal nodes although a full coverage is highly unlikely. Nonetheless, if one is mostly interested in the number of class-switching events and the distribution of observations, this approach allows to investigate that in an easy and straight-forward manner. The calculation in this example is based on the distances from the tree calculations above.
 
-This function generates the following artefacts in a specified output folder, where "ID" is the clone ID:
+The phylogenetic tree built above does not allow directly to infer CSR events, as the lineage reconstruction step considers only the variable region. However, with the knowledge of constant region for each sequence, we can prune the reconstructed tree and identify edges in the tree where sequences of different constant regions are connected. We provide the function `cloneArborescence`, which consider the phylogenetic tree as a directed network, removes edges in the network which violates the physical ordering of immunoglobulin constant region genes in the genome, and generates a directed [minimum spanning tree](https://en.wikipedia.org/wiki/Minimum_spanning_tree) rooted at the germline sequence; such tree is technically known as an 'arborescence tree'. Using [Edmonds' algorithm](https://en.wikipedia.org/wiki/Edmonds%27_algorithm), a tree is built satisfying the following requirements: (i) the destination of each edge uses a constant region genes that is either identical or downstream of the constant region gene for the source of the edge, (ii) the germline is set to be the true root node, (iii) all (directed) edges lead away from the root and (iv) a node has only one parent node. Although this only provides estimation of CSR (since we do not directly reconstruct 'hidden' internal nodes of the tree), this approach provides a straight-forward method to evaluate the number of class-switching events; the lengths ('distances') of edges in the tree also allows an estimation of the mutational level in the variable region at which the CSR event takes place.
+
+The `cloneArborescence` function generates the following output in a specified output folder, where "ID" is the clone ID:
 
 * File "clone_ID.arbo", a data frame with the edges of the arborescence tree and their weights.
-* File "clone_ID_arbo.png", a picture of the arborescence tree.
+* File "clone_ID_arbo.png", a graphical representation of the arborescence tree.
 
 ```{r, eval = TRUE, message = FALSE, warning=FALSE}
 # generate an output folder
-outputFolder <- path.expand( "~/Desktop/IgPhyML/arborescence" )
+outputFolder <- path.expand( "~/Desktop/BrepPhylo-example/arborescence" )
 dir.create( outputFolder, showWarnings = FALSE )
 
-# execute it for clone 188
+# execute it for clone 1548
 # read in the clone and the tree
-clone <- read.csv( path.expand( "~/Desktop/IgPhyML/clone_188/clone_188.csv" ) )
-tree <- "~/Desktop/IgPhyML/clone_188/clone_188.tree"
+clone <- read.csv( 
+  path.expand( "~/Desktop/BrepPhylo-example/cloneLineage/clone_1548/clone_1548.csv" ) 
+)
+tree <- "~/Desktop/BrepPhylo-example/cloneLineage/clone_1548/clone_1548.tree"
 
-# calculate the arborescence for clone 188
+# calculate the arborescence for clone 1548
 arborescence <- cloneArborescence( clone = clone,
-                                   cloneID = "188",
+                                   cloneID = "1548",
                                    columnSeqID = "Seq_ID",
                                    columnSubclass = "Subclass",
                                    tree = tree,
@@ -218,74 +224,106 @@ arborescence <- cloneArborescence( clone = clone,
 ```
 
 ```{r, echo = FALSE, fig.cap = "Clone 188, 53 members, arborescence tree (simple model)", out.width = "100%"}
-knitr::include_graphics( paste0( path.expand( "~/Desktop/IgPhyML" ), "/arborescence/clone_188_arbo.png" ) )
+knitr::include_graphics( paste0( path.expand( "~/Desktop/BrepPhylo-example" ), "/arborescence/clone_1548_arbo.png" ) )
 ```
-
 This arborescence lineage can also be visualised in a plot by ordering the nodes (i.e. sequences) by their distance from the root, groupng them by their ancestors in the graph, and plotting the subclass distribution across the distance-from-root axis:
 
-```{r, fig.cap = "Clone 188 arborescence tree visualised as a 'lineage plot' highlighting emergence of sequences of different isotypes."}
+```{r, fig.cap = "Clone 1548 arborescence tree visualised as a 'lineage plot' highlighting emergence of sequences of different isotypes."}
 arborescence$lineage_plot + cowplot::theme_cowplot()
 ```
 
-With this plot we can easily trace the evolution of class-switching in the clone (narrow "tips" from left to right).
+With this plot we can easily trace class-switching events in the clone (narrow "tips" from left to right):
+
+* G1 $\rightarrow$ G2 switch at the beginning of the lineage;
+* Followed by G1 $\rightarrow$ A1;
+* Later in the lineage switches to A2 and G2 limited to a small number of observations.  
 
 The class-switching events are listed in the `csr_events` element in the `cloneArborescence()` output:
 
 ```{r}
-arborescence$csr_events
+tibble::as_tibble( head( arborescence$csr_events ) )
 ```
 
-All of these could be traced on the lineage plot above. Note that the `distFromGermline` refers to the point this event is estimated to occur, *not* the point where a sub-lineage expands (widening of coloured bands vertically).
+All of these could be traced on the lineage plot above. Note that the `distFromGermline` refers to the point this event is estimated to occur - this can be a proxy of the mutational level of the V-domain at which CSR occurs.
 
-# Metrics to compare tree topologies
+# Batch lineage reconstruction analysis of a large number of clonotypes
 
-The functions above can be easily applied to generate trees for a large number of clones. It is difficult to do comparisons relying only on visual inspection of the trees. The `getTreeStats()` function quantifies a number of metrics to summarise different aspects of the topologies of a given tree. Numerous packages (e.g. [`partis`](https://github.com/psathyrella/partis) and [`alakazam`](https://alakazam.readthedocs.io/en/stable/)) has implemented methods to calculate, given a phylogenetic tree, a number of metrics. These packages focus on node-specific (i.e. specific to each sequence in the clone) measures; we based our implementation on functions available on the `alakazam` package and calculate these tree-centric metrics (in brackets are the name of the column[s] of the output data frame which holds these metrics):
+While the above showcases the detailed analysis on lineages possible using the `BrepPhylo` functionalities, often we aim to apply this sort of analyses on a large number of clonotypes, e.g. all clones sampled in the immunoglobulin repertoire of an individual. Here some of the outputs shown above (e.g. PDF alignments, graphical representation of trees) are less important; we are instead interested in quick and efficient reconstruction of lineages for these clonotypes, and easy-to-interpret metrics which can be quickly estimated from trees.
 
-* clone size (`clone_size`)
-* number of internal nodes (`n_internal`)
-* trunk length (ie distance from root to closest ["first"] split node) (`trunk_length`)
-* root degree *normalised by the total number of edges in the tree* (`root_degree`)
-* out-degree *normalised by the total number of edges in the tree*  - min, max, mean (`outdegree_*`)
-* path length (ie distance from root) - min, max, mean (`dist_from_root_*`)
-* distance between split nodes - min, max, mean (`dist_btwn_splits_*`)
-* distance from root to split nodes - min, max, mean (`dist_root_to_splits_*`)
-* distance from leaf to "first" split node - min, max, mean (`dist_from_first_split_*`)
-* distance from leaf to nearest split node - min, max, mean (`dist_from_nearest_split_*`)
-* size of sub-tree rooted on internal nodes *normalised by the total tree size* - min, max, mean (`size_subtrees_*`)
+The function `doBatchCloneAnalysis` is designed for this purpose. This function is a wrapper for the `cloneLineage` and `cloneArborescence` functions explained above, to apply it over all clonotypes present in an input data frame. The output of `doBatchCloneAnalysis` include:
 
-As you can see, a number of node-centric measures are included and converted to be tree-centric by considering summary statistics of their distributions (min, max, mean). Additionally, if IgPhyML analysis has already been performed on the clone of interest, parameters estimated by the IgPhyML model fit can be parsed into this function and these following parameters will be directly extracted and reported:
+* in the given output folder, all identical output as `cloneLineage`.
+* a subfolder named 'arborescence' containing all identical output as `cloneArborescence`.
+* in R, `doBatchCloneAnalysis` returns a nested list: each element of the list represents one clonotype, itself a list containing two data frames:
+  + `distances`: the output from `getGermlineDistance` of the calculated lineage tree.
+  + `csr_events`: the list of CSR events output from `cloneArborescence`.
+  
+```{r, eval = FALSE, message = FALSE, warning=FALSE}
+# To illustrate use all sequences from patient CV325
+selected_input <- input[ which( input$PatientID == "CV325" ), ]
 
-* total tree length (i.e. sum of the lengths of *all* edges in the tree) (`total_tree_length`)
-* ts/tv, i.e. transition-vs-transversion ratio (`ts_tv`)
-* dN/dS, i.e. nonsynonymous-vs-synonymous / replacement-vs-silent ratio (`dn_ds`)
-* mutability for the following motives: hotspots (WRC, GYW, WA, TW) and coldspots (SYC, GRS) (`h_*`)
+# generate output folder
+outputFolder <- path.expand( "~/Desktop/BrepPhylo-example/batchAnalysis" )
+dir.create( outputFolder, showWarnings = FALSE )
 
-Note that the default IgPhyML run *did not* partition sequences into FWR and CDR portions; as a result separate dN/dS estimates for the two regions are not available. Doing so would require instruction to IgPhyML as to how to partition each sequence in the repertoire. At the moment this is not supported in the `cloneLineage` call.
-
-**Important**: the minimum input to `getTreeStats` is *either* a conventional lineage tree (estimated using the 'simple' method above, or using IgPhyML or other phylogenetic reconstruction methods) or an arborescence tree generated using `cloneArborescence`. Please note that these methods generate trees of different natures and this has implications on the utility of these tree metrics. For example, an arborescence tree does not have internal nodes, and split nodes are themselves observed sequences rather than common ancestors absent from the sampled repertoire. On the other hand, conventional phylogenetic trees always connect pairwise observations, be it an internal node or a 'leaf' (i.e. observed sequences in this case) - this will imply out-degrees of nodes in such trees to be any one of 0 (the leafs), 1 (the germline to the first split internal node) or 2 (any split nodes). These differences need to be taken into account. 
-
-For these reasons, we suggest passing information from *both* the phylogenetic and the arborescence trees to obtain meaningful tree statistics. By default, the following metrics are returned from each type of tree input:
-
-* Conventional phylogenetic trees: clone size, number of internal nodes, total tree length, trunk length, path length, size of subtrees, and all distance-based measures listed above
-* IgPhyML model fits: ts/tv, dn/ds, motif mutabilities
-* Arborescence tree: clone size, all degree-based measures listed above
-
-```{r getTreeStat}
-getTreeStats( cloneID = "188", 
-              phylo_tree = "~/Desktop/IgPhyML/clone_188/clone_188.tree",
-              arbo_tree = arborescence$graph, 
-              fit_stats = "~/Desktop/IgPhyML/clone_188/clone_188_IgPhyML_fit.stats",
-              germline = "IGHV3-49*04" )
+batch_results <- doBatchCloneAnalysis( 
+  selected_input,
+  outputFolder = outputFolder,
+  species = "Homo_sapiens",
+  sequence_column = "V_gapped",
+  IGHVgeneandallele_column = "V.GENE.and.allele",
+  plotFormat = "pdf",
+  phyloTreeType = "dnapars",
+  phyloTreeOptions = list( "executable" = dnapars_executable ),
+  useTempDir = FALSE 
+)
+# see above: doBatchCloneAnalysis returns a list in R which can be useful for 
+# further analysis. We can save it in a R data file, so we can load these 
+# separately later on (with readRDS()), without re-running the analysis.
+saveRDS(batch_results, '~/Desktop/BrepPhylo-example/batchAnalysis/CV325_batch_analysis.rds')
 ```
 
-As one would intuitively expect, some of these features are correlated with one another. The following plots the Spearman correlation between these tree metrics calculated from clones identified from the B-cell repertoire of one individual:
+The `doBatchCloneAnalysis` function is very efficient: for this example considering `r nrow( selected_input )` sequences from `r length( unique (selected_input$CloneID) )` clonotypes, it takes $\approx 5$ minutes to perform lineage analyses in one batch. This function can also be easily wrapped in e.g. a `for` loop to process clonotypes from multiple repertoires.
 
+## Assessing Germline Likeness of a repertoire
 
-Based on this we selected the following metrics as a 'core' set of metrics to be reported:
+```{r, fig.width=6}
+# We have included in the package the pre-computed germline distances of 
+# sequences in the 'input' data frame, here use this as an example
+distFromGermline <- system.file( "extdata/input_GermlineDistances.csv", package = "BrepPhylo")
+distFromGermline <- read.csv(distFromGermline)
 
-If only these 'core' metrics are desired, please specify `coreMetricsOnly = TRUE` when you call `getTreeStat`.
+# this summarise for each clone the median germline distance
+# and place each clone in the distribution of this median-distance over all clones
+germlineDistance_summary <- summariseGermlineDistance( 
+  distFromGermline, dist_column = "distFromGermline", 
+  cloneID_column = "CloneID", 
+  summarise_variables = c( "PatientID", "CloneID" ) 
+)
+
+# we can plot this as a curve to show the overall distribution
+library(ggplot2)
+ggplot(germlineDistance_summary, aes(x = dist_median, y = clone_order, 
+                                     group = PatientID, colour = PatientID)) +
+  geom_line() + scale_colour_discrete(name = "") + cowplot::theme_cowplot() +
+  xlab("median distance from germline") + ylab("clone percentile")
+```
+
+Here, each clone is summarised and ranked by its median distance-from-germline metric. The rank is shown on the y-axis and the actual median distance-from-germline on the x-axis. This curve shows the overall level of mutation (and inversely, similarity to the germline) over all clonotypes in a repertoire. Comparing these two curves, we can conclude that patient CV233 overall has a higher similarity to germline (i.e. fewer mutations accumulated) compared to patient CV325.
+
+This phenomenon can be summarised as a metric: by quantifying the Area-under-curve (AUC) this metric quantifies what we call 'Germline Likeness', i.e. for this given repertoire, how much are the clonotypes similar to germline?
+
+```{r}
+patient_details <- data.frame( PatientID = unique( distFromGermline[, c("PatientID") ] ) )
+
+getGermlineLikeness( germlineDistance_summary,
+                     metadata_table = patient_details,
+                     summarise_variables = "PatientID" )
+```
+The higher this metric, the closer the clonotypes in general are to their corresponding germline. One can calculate the Germline Likeness metric over repertoires of many different donors and perform statistical comparisons on it to evaluate differences in mutational levels in repertoires sampled from different disease conditions.
+
 
 # Appendix
-![Performance benchmark of `cloneLineage()` depending on clone size: Computing time on a 4GB iMac 27](figures/phylogenetic/cloneLineage_benchmark.png)
+![Performance benchmark of `cloneLineage()` run on three clones of different sizes: Computing time on a 4GB iMac 27](figures/phylogenetic/cloneLineage_benchmark.png)
 
 # Bibliography
