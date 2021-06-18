@@ -4,12 +4,12 @@ author:
   - "Joseph Ng"
 date: '`r Sys.Date()`'
 output:
+  pdf_document:
+    fig_width: 12
+    number_sections: yes
   html_document:
     fig_width: 12
     highlight: pygments
-    number_sections: yes
-  pdf_document:
-    fig_width: 12
     number_sections: yes
 csl: nar-webserver-issue.csl
 bibliography: bibliography.bib
@@ -36,7 +36,7 @@ knitr::opts_knit$set(
 
 Immunoglobulins produced by B cells are constantly modified in order to optimise their function. One aspect of their function is to recognise antigens the immune system encounters during an infection; this is achieved with the '*variable region*' of immunoglobulins, where mutations can be introduced to enhance the affinity and specificity towards the given target, during a process called *affinity maturation*. Immunoglobulin sequences can be clustered by observing similarities of the variable region to obtain *clonotypes*[^clonotype_clustering]: typically, all sequences within a clonotype have similar Complementarity-determining region 3 (CDR3) and therefore should all belong to one 'lineage' and presumably target one specific part of an antigen. It is however also interesting to consider differences between sequences that come from the same clonotype, as this knowledge allow us to learn how this lineage of B cells optimises its variable region throughout its response to the immune challenge. This typically involves the reconstruction of 'lineage trees' that connect every observation in the clonotype with its germline 'root' of the tree. Analysis of such lineage tree would reveal details of the maturation process of this group of B cells in the context of the immune response.
 
-Another aspect of immunoglobulin function is to initiate a cascade of events in order to orchestrate an effective response towards the immune challenge, e.g. by allowing the B cel to communicate with other cell types in the immune system. This aspect of function depends on the '*constant region*' of the immunoglobulin molecule. A lineage of B cells can 'switch' their constant regions to trigger different downstream effects; this process is known as Class-Switch Recombination (CSR). CSR is uni-directional: mechanistically it involves excisions of DNA segments from the genome, therefore it is an irreversible process with a restricted pool of options to switch to, depending on the constant region gene used at the beginning of this process. The physical arrangement of the genes encoding different constant regions thus determines whether a switch is possible. Traditionally the constant region is less well-sampled in sequencing studies of immunoglobulin repertoires; conventional lineage reconstruction methods do not consider the constant region. Knowledge of CSR, however, could be used to evaluate the accuracy of the reconstructed lineage trees, as well as to infer the dynamics and interplay between CSR and affinity maturation.
+Another aspect of immunoglobulin function is to initiate a cascade of events in order to orchestrate an effective response towards the immune challenge, e.g. by allowing the B cell to communicate with other cell types in the immune system. This aspect of function depends on the '*constant region*' of the immunoglobulin molecule. A lineage of B cells can 'switch' their constant regions to trigger different downstream effects; this process is known as Class-Switch Recombination (CSR). CSR is uni-directional: mechanistically it involves excisions of DNA segments from the genome, therefore it is an irreversible process with a restricted pool of options to switch to, depending on the constant region gene used at the beginning of this process. The physical arrangement of the genes encoding different constant regions thus determines whether a switch is possible. Traditionally the constant region is less well-sampled in sequencing studies of immunoglobulin repertoires; conventional lineage reconstruction methods do not consider the constant region. Knowledge of CSR, however, could be used to evaluate the accuracy of the reconstructed lineage trees, as well as to infer the dynamics and interplay between CSR and affinity maturation.
 
 The `BrepPhylo` package contains a set of functions written for the purpose of performing lineage reconstruction of a large number of B cell clonotypes obtained via high-throughput sequencing of immunoglobulin repertoires. The aim is to provide 'wrappers' around popular, existing tools for lineage reconstruction, detect Class-Switch Recombination (CSR) events from lineage trees, and generate easy-to-interpret output to analyse these lineages.
 
