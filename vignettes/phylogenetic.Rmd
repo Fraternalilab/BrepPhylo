@@ -32,11 +32,11 @@ knitr::opts_knit$set(
 )
 ```
 
-# Background: B cell lineages
+# Background: Reconstructing B cell lineages
 
-Immunoglobulins produced by B cells are constantly modified in order to optimise their function. One aspect of their function is to recognise antigens the immune system encounters during an infection; this is achieved with the '*variable region*' of immunoglobulins, where mutations can be introduced to enhance the affinity and specificity towards the given target, during a proces called *affinity maturation*. Immunoglobulin sequences can be clustered by observing similarities of the variable region to obtain *clonotypes*[^clonotype_clustering]: all sequences within a clonotype have similar sequences and therefore should target one specific part of an antigen. It is however also interesting to consider differences between sequences that come from the same clonotype, as this knowledge allow us to learn how this lineage of B cells optimises its variable region throughout its response to the immune challenge. This typically involves the reconstruction of *lineage trees* that connect every observation in the clonotype with its germline 'root' of the tree. Analysis of such lineage tree would reveal details of the evolution of a given B cell clonotype in immune response.
+Immunoglobulins produced by B cells are constantly modified in order to optimise their function. One aspect of their function is to recognise antigens the immune system encounters during an infection; this is achieved with the '*variable region*' of immunoglobulins, where mutations can be introduced to enhance the affinity and specificity towards the given target, during a process called *affinity maturation*. Immunoglobulin sequences can be clustered by observing similarities of the variable region to obtain *clonotypes*[^clonotype_clustering]: typically, all sequences within a clonotype have similar Complementarity-determining region 3 (CDR3) and therefore should all belong to one 'lineage' and presumably target one specific part of an antigen. It is however also interesting to consider differences between sequences that come from the same clonotype, as this knowledge allow us to learn how this lineage of B cells optimises its variable region throughout its response to the immune challenge. This typically involves the reconstruction of 'lineage trees' that connect every observation in the clonotype with its germline 'root' of the tree. Analysis of such lineage tree would reveal details of the maturation process of this group of B cells in the context of the immune response.
 
-Another aspect of immunoglobulin function is to initiate cascade of events in order to orchestrate an effective response towards the immune challenge, e.g. by engaging in interactions with other cell types in the immune system. This aspect of function depends on the '*constant region*' of the immunoglobulin molecule. A lineage of B cells can 'switch' their constant regions to trigger different downstream effects; this process is known as Class-Switch Recombination (CSR). CSR is irreversible and uni-directional: mechanistically it involves excisions of DNA segments from the genome which leads to an ever decreasing pool of potential 'destination' options of constant region genes. Therefore the physical arrangement of the genes encoding different constant regions determines whether a switch is possible. Traditionally the constant region is less well-sampled in sequencing studies of immunoglobulin repertoires; conventional lineage reconstruction methods do not consider the constant region. Knowledge of CSR, however, could be used to evaluate the reconstructed lineage trees, as well as to infer the dynamics and interplay between CSR and affinity maturation.
+Another aspect of immunoglobulin function is to initiate a cascade of events in order to orchestrate an effective response towards the immune challenge, e.g. by allowing the B cel to communicate with other cell types in the immune system. This aspect of function depends on the '*constant region*' of the immunoglobulin molecule. A lineage of B cells can 'switch' their constant regions to trigger different downstream effects; this process is known as Class-Switch Recombination (CSR). CSR is uni-directional: mechanistically it involves excisions of DNA segments from the genome, therefore it is an irreversible process with a restricted pool of options to switch to, depending on the constant region gene used at the beginning of this process. The physical arrangement of the genes encoding different constant regions thus determines whether a switch is possible. Traditionally the constant region is less well-sampled in sequencing studies of immunoglobulin repertoires; conventional lineage reconstruction methods do not consider the constant region. Knowledge of CSR, however, could be used to evaluate the accuracy of the reconstructed lineage trees, as well as to infer the dynamics and interplay between CSR and affinity maturation.
 
 The `BrepPhylo` package contains a set of functions written for the purpose of performing lineage reconstruction of a large number of B cell clonotypes obtained via high-throughput sequencing of immunoglobulin repertoires. The aim is to provide functionalities as 'wrappers' around popular, existing tools for lineage reconstruction, provide functionalities to detect CSR events from lineage trees, and provide easy-to-interpret output to analyse these lineages.  
 
@@ -53,19 +53,21 @@ require(devtools)
 install_github("Fraternalilab/BrepPhylo", ref = "main", dependencies = TRUE)
 ```
 
-Note above should install `BrepPhylo` itself as well as its dependencies. You might encounter issues related to the package `sf` which is the dependency of one of the packages we import. Following [these instructions](https://r-spatial.github.io/sf/#installing) from `sf` to resolve these issues.
+The above should install `BrepPhylo` itself as well as its dependencies. You might encounter issues related to the package `sf` which is the dependency of one of the packages we import. Following [these instructions](https://r-spatial.github.io/sf/#installing) from `sf` to resolve these issues.
 
-`BrepPhylo` also uses phylogenetics packages [`PHYLIP`](https://evolution.gs.washington.edu/phylip/) and [`IgPhyML`](https://igphyml.readthedocs.io/en/latest/overview.html). Please follow the respective documentation pages to install these packages if you wish to use them through `BrepPhylo` functions. We included the relevant `PHYLIP` executable (`dnapars`) we used in `BrepPhylo` in the package so you don't have to install this by yourself; this executable should work on MacOS and Linux systems; see examples below for instructions on how to source this executable.
+`BrepPhylo` also uses phylogenetics packages [`PHYLIP`](https://evolution.gs.washington.edu/phylip/) and [`IgPhyML`](https://igphyml.readthedocs.io/en/latest/overview.html). Please follow the respective documentation pages to install these packages if you wish to use them through `BrepPhylo` functions. We included the relevant `PHYLIP` executable (`dnapars`) we used in `BrepPhylo` in the package so you don't have to install this by yourself; this executable should work on MacOS and Linux systems. See examples below for instructions on how to source this executable.
 
-# Targeted lineage analysis of a small number of B cell clonotypes
+# Lineage analysis of a small number of B cell clonotypes
 
 ## Input data
 
-`BrepPhylo` assumes a table has been generated to hold sequences and annotations of immunoglobulins observed from sequencing studies of B-cell repertoire. This could typically be obtained by, e.g. the [IMGT/HighV-QUEST](http://www.imgt.org/HighV-QUEST/) [@brochet_imgt_v-quest_2008] webserver. Its output can be readily analysed as spreadsheets, or by using dedicated tools such as [BRepertoire](http://mabra.biomed.kcl.ac.uk/BRepertoire). Below are additional annotations required on top of the IMGT/HighV-Quest output:
+`BrepPhylo` assumes a table has been generated to hold sequences and annotations of immunoglobulins observed from sequencing studies of B-cell repertoire. This could typically be obtained by, e.g. the [IMGT/HighV-QUEST](http://www.imgt.org/HighV-QUEST/) [@brochet_imgt_v-quest_2008] webserver. We offer flexibility so that this input can be in the standardised [AIRR format](https://docs.airr-community.org/en/stable/), or in any similar data table format with custom columns. HighV-QUEST output can be readily analysed as spreadsheets, or by using dedicated tools such as [BRepertoire](http://mabra.biomed.kcl.ac.uk/BRepertoire). 
 
-1. **Clonotype clustering**: we assume that clustering of clonotypes has already been performed on sequences. We used our protocols which is available on BRepertoire. Equivalently users can use clonotype clustering procedures of their choice such as those implemented in [Change-O](https://changeo.readthedocs.io/en/stable/), the `cellranger vdj` pipeline (if your repertoire data originate from a single-cell experiment using the 10X Genomics protocols) etc. The minimum requirement is an additional column detailing the identifier of clonotypes each sequence is mapped to. Here in our example, unique identifiers are given in column `CloneID` (observations with the same integer number are considered part of the same clone).
+Below are additional annotations **required** on top of the IMGT/HighV-Quest output:
 
-2. **Constant region**: we also require that the constant region of each sequence can be assigned, down to the level where different antibody 'subclasses' can be distinguished (e.g. IgG1, IgG2, ... - rather than only 'IgG'). In our examples we have the columns `Class` and `Subclass`. These annotations are used for both labelling purposes (in graphical representations of lineage trees), and for analysing CSR events.
+1. **Clonotype clustering**: we assume that clustering of clonotypes has already been performed on sequences. We use our protocols which have been made available on BRepertoire. Equivalently, users can use clonotype clustering procedures of their choice, such as those implemented in [Change-O](https://changeo.readthedocs.io/en/stable/), or the `cellranger vdj` pipeline (if your repertoire data originate from a single-cell experiment using the 10X Genomics protocols) etc. The minimum requirement is an additional column detailing the identifier of clonotypes each sequence is mapped to. Here in our example, unique identifiers are given in column `CloneID` (observations with the same integer number are considered part of the same clone).
+
+2. **Constant region**: we also require that the constant region of each sequence be assigned, down to the level where different antibody 'subclasses' can be distinguished (e.g. IgG1, IgG2, ... - rather than only 'IgG'). In our examples we have the columns `Class` and `Subclass`. These annotations are used for both labelling purposes (in graphical representations of lineage trees), and for analysing CSR events.
 
 ## Load data
 
@@ -102,11 +104,11 @@ In this example, it is evident that the members of clone 3 of patient CV233 show
 
 ## Construct phylogenetic trees and PDF alignments for selected clones
 
-Function `cloneLineage` takes a clone and constructs a lineage tree to show phylogenetic relationships between sequences and the annotated germline. This problem has been explored extensively in the literature and a variety of methods exist to reconstruct lineage trees. At the moment this function supports three methods:
+Function `cloneLineage()` takes a clone and constructs a lineage tree to show phylogenetic relationships between sequences and the annotated germline. This problem has been explored extensively in the literature and a variety of methods exist to reconstruct lineage trees. At the moment this function supports three methods:
 
-* **'simple'**: a neighbour-joining (NJ) tree. Internally a distance matrix between sequences is constructed for the NJ algorithm to provide a solution. This can be viewed as a 'quick-and-dirty' way of lineage reconstruction; the output tree represents only one of the many possible solutions, and may not conform to assumptions inherent in the development of immunoglobulin lineages.
-* **'dnapars'**: a maximum parsimony tree constructed using the `dnapars` program in the popular phylogenetics package `PHYLIP`. **This is the default method used in the cloneLineage function.** In our experience this is superior to the 'simple' NJ method above without compromising too much on efficiency (such that it is still feasible to apply to a large number of clonotypes).
-* **'igphyml'**: a maximum likelihood tree constructed using the [IgPhyML](https://igphyml.readthedocs.io) program [@hoehn_phylogenetic_2017]. This implements codon-specific substitution model aware of mutational preferences in somatic hypermutation, so theoretically this is best suited to be applied to immunoglobulin sequences. However the run-time of IgPhyML is significantly longer than the other two modes (see Appendix of this vignette), rendering this not too feasible to generate lineage trees for a large number of clonotypes. *Note:* this is kept as an legacy option. Active development and debugging has stopped for runs using the `igphyml` mode.
+* **'simple'**: a neighbour-joining (NJ) tree. Internally a distance matrix between sequences is constructed for the NJ algorithm to provide a solution. This can be viewed as a 'quick-and-dirty' way of lineage reconstruction; the output tree represents only one of the many possible solutions, and may not conform to biological assumptions inherent in the development of immunoglobulin lineages.
+* **'dnapars'**: a maximum parsimony tree constructed using the `dnapars` program in the popular phylogenetics package `PHYLIP`. **This is the default method used in the cloneLineage function.** In our experience this is superior to the 'simple' NJ method above in terms of accuracy, without compromising too much on efficiency (such that it is still feasible to apply to a large number of clonotypes).
+* **'igphyml'**: a maximum likelihood tree constructed using the [IgPhyML](https://igphyml.readthedocs.io) program [@hoehn_phylogenetic_2017]. This implements codon-specific substitution model aware of mutational preferences in somatic hypermutation, so theoretically this is best suited to be applied to immunoglobulin sequences. However the run-time of IgPhyML is significantly longer than the other two modes (see Appendix of this vignette), rendering this not too feasible to generate lineage trees for a large number of clonotypes. (*Note:* this is kept as an legacy option. Active development and debugging has stopped for runs using the `igphyml` mode.)
 
 ### Sequence format and germline database
 
@@ -116,7 +118,7 @@ We support either ungapped or gapped (according to the IMGT nomenclature) versio
 * If you work on other species, and/or you would like to use a germline sequence set of your choice, you can pass the FASTA file containing such sequences using the parameter `germlineSet` in calling `cloneLineage()`. If you opt for this option, remember the germline sequence set **must** match V-gene sequences in the submitted data frame in terms of gapping. If e.g. the sequences are IMGT-gapped but the germline sequence set is not, the function will return an error message. IMGT germline sequences can easily be downloaded from the IMGT website ([IMGT/Gene-DB](http://www.imgt.org/genedb/) for flexible selection of sequence sets, or [IMGT reference directory](http://www.imgt.org/download/V-QUEST/) for IMGT-gapped sequences for each gene locus of a given species). 
 * Please note that the parameter `species` needs to match the naming system in the germline sequence set. If you use the default in-built germlines, please refer to the first point for allowed species names. If you use your own germline sequence set, sequences downloaded from IMGT are named by the binomial nomenclature (i.e. "Homo sapiens", "Mus musculus" etc. - notice space instead of "_") - this should be specified in the `species` argument. 
 
-Germline sequence will be selected for each clone automatically by taking the allele annotated for most of the sequences in the given clone. If gapped sequences are submitted, sequences will be processed obeying the IMGT gaps. If ungapped sequences are submitted, ClustalOmega will be called to generate a multiple sequence alignment of the given clone with the assigned germline, prior to feeding these to the tree construction programs of choice.
+Germline sequence will be selected for each clone automatically by taking the allele annotated for most of the sequences in the given clone. If gapped sequences are submitted, sequences will be processed obeying the IMGT gaps. If ungapped sequences are submitted, [ClustalOmega](http://www.clustal.org/omega/) will be called to generate a multiple sequence alignment (MSA) of the given clone with the assigned germline, prior to feeding these to the tree construction program of your choice.
 
 ### Expected output
 
@@ -193,13 +195,15 @@ tibble::as_tibble( head( germline_distance ) )
 
 We find that these distance-from-germline calculations can be used to summarise the overall germline likeness of a repertoire (see below), which is a useful metric to assess the relevance of germinal centre reaction in shaping the development of this lineage.
 
+\newpage
+
 ## Construct an arborescence tree for a B cell clone
 
-The phylogenetic tree built above does not allow directly to infer CSR events, as the lineage reconstruction step considers only the variable region. However, with the knowledge of constant region for each sequence, we can prune the reconstructed tree and identify edges in the tree where sequences of different constant regions are connected. We provide the function `cloneArborescence`, which consider the phylogenetic tree as a directed network, removes edges in the network which violates the physical ordering of immunoglobulin constant region genes in the genome, and generates a directed [minimum spanning tree](https://en.wikipedia.org/wiki/Minimum_spanning_tree) rooted at the germline sequence; such tree is technically known as an 'arborescence tree'. Using [Edmonds' algorithm](https://en.wikipedia.org/wiki/Edmonds%27_algorithm), a tree is built satisfying the following requirements: (i) the destination of each edge uses a constant region genes that is either identical or downstream of the constant region gene for the source of the edge, (ii) the germline is set to be the true root node, (iii) all (directed) edges lead away from the root and (iv) a node has only one parent node. Although this only provides estimation of CSR (since we do not directly reconstruct 'hidden' internal nodes of the tree), this approach provides a straight-forward method to evaluate the number of class-switching events; the lengths ('distances') of edges in the tree also allows an estimation of the mutational level in the variable region at which the CSR event takes place.
+The phylogenetic tree built above does not allow direct inference of CSR events, as the lineage reconstruction step considers only the variable region. However, with the knowledge of constant region for each sequence, we can prune the reconstructed tree and identify edges in the tree where sequences of different constant regions are connected. We provide the function `cloneArborescence`, which consider the phylogenetic tree as a directed network, removes edges in the network which violates the physical ordering of immunoglobulin constant region genes in the genome, and generates a directed [minimum spanning tree](https://en.wikipedia.org/wiki/Minimum_spanning_tree) rooted at the germline sequence; such tree is technically known as an 'arborescence tree'. Using [Edmonds' algorithm](https://en.wikipedia.org/wiki/Edmonds%27_algorithm), a tree is built satisfying the following requirements: (i) the destination of each edge uses a constant region genes that is either identical or downstream of the constant region gene for the source of the edge, (ii) the germline is set to be the true root node, (iii) all (directed) edges lead away from the root and (iv) a node has only one parent node. Although this only provides estimation of CSR (since we do not directly reconstruct 'hidden' internal nodes of the tree), this approach provides a straight-forward method to evaluate the number of class-switching events; the lengths ('distances') of edges in the tree also allows an estimation of the mutational level in the variable region at which the CSR event takes place.
 
 The `cloneArborescence` function generates the following output in a specified output folder, where "ID" is the clone ID:
 
-* File "clone_ID.arbo", a data frame with the edges of the arborescence tree and their weights.
+* File "clone_ID.arbo", a data frame with the edges of the arborescence tree and their lengths.
 * File "clone_ID_arbo.png", a graphical representation of the arborescence tree.
 
 ```{r, eval = TRUE, message = FALSE, warning=FALSE}
@@ -226,9 +230,12 @@ arborescence <- cloneArborescence( clone = clone,
 ```{r, echo = FALSE, fig.cap = "Clone 188, 53 members, arborescence tree (simple model)", out.width = "100%"}
 knitr::include_graphics( paste0( path.expand( "~/Desktop/BrepPhylo-example" ), "/arborescence/clone_1548_arbo.png" ) )
 ```
+
+\newpage
+
 This arborescence lineage can also be visualised in a plot by ordering the nodes (i.e. sequences) by their distance from the root, groupng them by their ancestors in the graph, and plotting the subclass distribution across the distance-from-root axis:
 
-```{r, fig.cap = "Clone 1548 arborescence tree visualised as a 'lineage plot' highlighting emergence of sequences of different isotypes."}
+```{r, fig.cap = "Clone 1548 arborescence tree visualised as a 'lineage plot' highlighting emergence of sequences of different isotypes.", fig.width=4, fig.height=3}
 arborescence$lineage_plot + cowplot::theme_cowplot()
 ```
 
@@ -245,6 +252,8 @@ tibble::as_tibble( head( arborescence$csr_events ) )
 ```
 
 All of these could be traced on the lineage plot above. Note that the `distFromGermline` refers to the point this event is estimated to occur - this can be a proxy of the mutational level of the V-domain at which CSR occurs.
+
+\newpage
 
 # Batch lineage reconstruction analysis of a large number of clonotypes
 
@@ -287,7 +296,7 @@ The `doBatchCloneAnalysis` function is very efficient: for this example consider
 
 ## Assessing Germline Likeness of a repertoire
 
-```{r, fig.width=6}
+```{r, fig.cap = "Distribution of distance-from-germline of clonotypes observed in the repertoires of two patients.", fig.width=4, fig.height=3}
 # We have included in the package the pre-computed germline distances of 
 # sequences in the 'input' data frame, here use this as an example
 distFromGermline <- system.file( "extdata/input_GermlineDistances.csv", package = "BrepPhylo")
@@ -322,8 +331,11 @@ getGermlineLikeness( germlineDistance_summary,
 ```
 The higher this metric, the closer the clonotypes in general are to their corresponding germline. One can calculate the Germline Likeness metric over repertoires of many different donors and perform statistical comparisons on it to evaluate differences in mutational levels in repertoires sampled from different disease conditions.
 
+\newpage
 
 # Appendix
 ![Performance benchmark of `cloneLineage()` run on three clones of different sizes: Computing time on a 4GB iMac 27](figures/phylogenetic/cloneLineage_benchmark.png)
+
+\newpage
 
 # Bibliography

@@ -2,7 +2,7 @@
 
 An R package with functions to perform phylogenetic reconstruction of B-cell receptor (BCR) lineages.
 
-The `BrepPhylo` package contains a set of functions written for the purpose of performing lineage reconstruction of a large number of B cell clonotypes obtained via high-throughput sequencing of immunoglobulin repertoires. The aim is to provide functionalities as 'wrappers' around popular, existing tools for lineage reconstruction, provide functionalities to detect Class-Switch Recombination (CSR) events from lineage trees, and provide easy-to-interpret output to analyse these lineages.  
+The `BrepPhylo` package contains a set of functions written for the purpose of performing lineage reconstruction of a large number of B cell clonotypes obtained via high-throughput sequencing of immunoglobulin repertoires. The aim is to provide 'wrappers' around popular, existing tools for lineage reconstruction, detect Class-Switch Recombination (CSR) events from lineage trees, and generate easy-to-interpret output to analyse these lineages.  
 
 ## Installation
 
