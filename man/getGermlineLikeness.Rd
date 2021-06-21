@@ -24,3 +24,24 @@ A data.frame identical to \code{metadata_table} with the additional column "Germ
 The function loops through each row in \code{metadata_table} and select the subset of lineages from \code{distFromGermline_summary} relevant to the given metadata combination,
 and calculate the Germline Likeness metric for this given set of lineages.
 }
+\examples{
+\dontrun{
+# We have included in the package the pre-computed germline distances of 
+# sequences in the 'input' data frame, here use this as an example
+distFromGermline <- system.file( "extdata/input_GermlineDistances.csv", package = "BrepPhylo")
+distFromGermline <- read.csv(distFromGermline)
+
+# set up a table containing metadata with which you want to
+# obtain a summary of Germline Likeness
+# here simply set up one column with PatientID
+patient_details <- data.frame( PatientID = unique( distFromGermline[, c("PatientID") ] ) )
+
+germline_likeness <- getGermlineLikeness( 
+  germlineDistance_summary,
+  metadata_table = patient_details,
+  summarise_variables = "PatientID" 
+)
+germline_likeness
+}
+
+}

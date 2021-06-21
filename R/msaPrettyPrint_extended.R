@@ -8,7 +8,6 @@
 #' @importFrom Biostrings rowmask colmask unmasked
 #' @importFrom IRanges IRanges start end reduce width
 #' @importFrom tools texi2dvi
-#' @export
 msaPrettyPrint_extended <- function (x, y, output = c("pdf", "tex", "dvi", "asis"), subset = NULL,
                                      file = NULL, alFile = NULL, askForOverwrite = TRUE, psFonts = FALSE, vecAdditionalHeader = c(),
                                      code = NA, paperWidth = 11, paperHeight = 8.5, margins = c(0.1,

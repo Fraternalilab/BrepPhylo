@@ -19,6 +19,8 @@ getGermlineDistance <- function( tree_file ){
   tree <- ape::read.tree( tree_file )
   if( length(tree$tip.label) < 7 ) return(NULL)
   root <- tree$tip.label[ which(grepl("^IG.V", tree$tip.label)) ]
+  if( length( root ) == 0 )
+    stop( "There doesn't appear to have a sequence named 'IGxV' where X can be any letter. It is not possible to root this tree without knowing this." )
   dists <- igraph::distances(alakazam::phyloToGraph(tree, germline = root),
                              v = root,
                              to = tree$tip.label[which(tree$tip.label != root)])
@@ -38,15 +40,6 @@ getGermlineDistance <- function( tree_file ){
 #' 
 #' @return numeric vector, percentile in the distance-from-germline distribution over all clones, for each corresponding entry in \code{dist}.
 #' 
-#' @examples
-#' \dontrun{
-#' # distFromGermline_table is the output of 'getGermlineDistance'
-#' # dist_median is a vector of median distance-from-germline calculated per clone
-#' dist_percentiles <- getDistPercentile( dist_median, 
-#'   percentiles = quantile(distFromGermline_table$distFromGermline, 
-#'                          probs = seq(0, 1, by = 0.01)) )
-#' }
-#'
 getDistPercentile <- function(dists, percentiles)
 {
   sapply(dists, function(d){
@@ -71,6 +64,21 @@ getDistPercentile <- function(dists, percentiles)
 #'   \item{clone_order}{Numeric, between 0 to 1, the percentile of the given clone in the distribution where all clones are ordered by their median distance.}
 #' }
 #'
+#' @examples
+#' \dontrun{
+#' # We have included in the package the pre-computed germline distances of 
+#' # sequences in the 'input' data frame, here use this as an example
+#' distFromGermline <- system.file( "extdata/input_GermlineDistances.csv", package = "BrepPhylo")
+#' distFromGermline <- read.csv(distFromGermline)
+#' 
+#' # this summarise for each clone the median germline distance
+#' # and place each clone in the distribution of this median-distance over all clones
+#' germlineDistance_summary <- summariseGermlineDistance( 
+#'   distFromGermline, dist_column = "distFromGermline", 
+#'   cloneID_column = "CloneID", 
+#'   summarise_variables = c( "PatientID", "CloneID" ) 
+#' )
+#' }
 #' @import plyr
 #' @importFrom stats median quantile
 #'
@@ -130,6 +138,26 @@ GermlineLikeness <- function(tb)
 #' 
 #' @return A data.frame identical to \code{metadata_table} with the additional column "GermlineLikeness" holding the Germline Likeness metric (numeric) of lineages matching the given combination of metadata attributes
 #'
+#' @examples 
+#' \dontrun{
+#' # We have included in the package the pre-computed germline distances of 
+#' # sequences in the 'input' data frame, here use this as an example
+#' distFromGermline <- system.file( "extdata/input_GermlineDistances.csv", package = "BrepPhylo")
+#' distFromGermline <- read.csv(distFromGermline)
+#' 
+#' # set up a table containing metadata with which you want to
+#' # obtain a summary of Germline Likeness
+#' # here simply set up one column with PatientID
+#' patient_details <- data.frame( PatientID = unique( distFromGermline[, c("PatientID") ] ) )
+#' 
+#' germline_likeness <- getGermlineLikeness( 
+#'   germlineDistance_summary,
+#'   metadata_table = patient_details,
+#'   summarise_variables = "PatientID" 
+#' )
+#' germline_likeness
+#' }
+#' 
 #' @export getGermlineLikeness
 getGermlineLikeness <- function(distFromGermline_summary, metadata_table, 
                                 summarise_variables){

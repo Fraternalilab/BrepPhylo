@@ -17,6 +17,7 @@ doBatchCloneAnalysis(
   germlineSet = NULL,
   plotFormat = "png",
   phyloTreeType = "simple",
+  phyloTreeOptions = NULL,
   makeArboTree = TRUE,
   useTempDir = TRUE
 )
@@ -44,7 +45,9 @@ doBatchCloneAnalysis(
 
 \item{plotFormat}{Either 'png' or 'pdf' (default: 'png')}
 
-\item{phyloTreeType}{"simple", "dnapars" or "igphyml". "simple" refers to a neighbour-joining tree; "dnapars" constructs a maximum parsimony tree using the phylip "dnapars" program (a local installation of the program is required). "igphyml" constructs a maximum likelihood tree taking into account mutational hotspot contexts in immunoglobulins, but is the most time consuming. (default: "dnapars").}
+\item{phyloTreeType}{"simple", "dnapars" or "igphyml". "simple" refers to a neighbour-joining tree; "dnapars" constructs a maximum parsimony tree using the phylip "dnapars" program (a local installation of the program is required). "igphyml" constructs a maximum likelihood tree taking into account mutational hotspot contexts in immunoglobulins, but is the most time consuming. (default: "dnapars")}
+
+\item{phyloTreeOptions}{A list to be fed as the 'parameter' entry in the \code{treeConstruction} argument of the \code{cloneLineage} function (see documentation of the \code{cloneLineage} function). If \code{NULL}, default settings will be used. (default: \code{NULL})}
 
 \item{makeArboTree}{Should arborescence tree be calculated? (default: TRUE)}
 

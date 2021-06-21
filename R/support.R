@@ -1,9 +1,10 @@
 #' Function to add a clone ID and its size to a file.
+#' 
 #' @param folder The path to the folder, where the file lies (filename is always "clones_completed.csv").
 #' @param cloneID The clone ID to be added.
 #' @param size The size of the clone.
+#' 
 #' @importFrom utils read.csv write.csv
-#' @export
 addCloneToCompleted <- function( folder, cloneID, size )
 {
   # check, if file exists
@@ -110,6 +111,42 @@ getCSEvents <- function(clone,
                                 "distFromGermline" )] )
   } else return( data.frame() )
 }
+
+#' Function to summarise distance-from-germline and CSR events from batch lineage analysis
+#' @param batchOutput list, output from \code{doBatchCloneAnalysis}.
+#' 
+#' @description This function processes the output from \code{doBatchCloneAnalysis} and merge entries representing individual lineage trees into two data frames, one containing distance-from-germline of all sequences in all lineages, and the other containing CSR events identified in all lineages. 
+#'
+#' @return A list with two elements: 
+#' \describe{
+#'   \item{distances}{data.frame with the distance-from-germline calculated from any sequences in all the lineage trees included in the input.}
+#'   \item{csr_events}{data.frame listing all class-switching events across all the lineages include in the input, and an estimate distance-from-germline at which such event takes place.}
+#' }
+#' 
+#' @export getSummaryFromBatch
+getSummaryFromBatch <- function( batchOutput ){
+  if( !is.list( batchOutput ) )
+    stop("'batchOutput' should be a list. See ?getSummaryFromBatch for details on how to use the function. ")
+  if( !any( c("distances", "csr_events") %in% unique( unlist( lapply( batchOutput, names ) ) ) ) )
+    stop("'batchOutput' is formatted differently from what is expected. Make sure you use directly the output from doBatchCloneAnalysis? ")
+  # merge the distance-from-germline entries
+  distance_germline <- do.call( "rbind", lapply( batchOutput, function(x) x$distances ) )
+  # CSR events
+  csr <- lapply( names( batchOutput ), function(y){
+    if( length( batchOutput[[y]] ) == 0 ) return( NULL )
+    tb <- batchOutput[[ y ]]$csr_events
+    if( is.null( tb ) ) return( NULL )
+    if( nrow( tb ) == 0 ) return( NULL )
+    tb$CloneID <- y
+    tb
+  })
+  csr <- csr[ which( sapply( csr, function(z) !is.null( z ) ) ) ]
+  if(length( csr ) > 0){
+    csr <- do.call("rbind", csr )
+  } else csr <- data.frame()
+  return( list( distances = distance_germline, csr_events = csr ) ) 
+}
+
 #' Function to parse DNAStringSet into nested list
 #'
 #' @param DNAStrings object of class \code{DNAStringsSet}, holding the sequences. Can be obtained by \code{Biostrings::readDNAstringSet( fasta )}, where 'fasta' is the FASTA file holding the sequences.

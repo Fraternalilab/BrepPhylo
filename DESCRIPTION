@@ -1,7 +1,7 @@
 Package: BrepPhylo
 Type: Package
 Title: BrepPhylo: R package for phylogenetic analysis of B cell repertoire
-Version: 0.3.0
+Version: 0.4.0
 Depends: R (>= 3.4.0)
 Authors@R: c( person( given = "Joseph", family = "Ng",
                       email = "joseph.chifung.ng@gmail.com", role = c( "aut", "cre" ) ),

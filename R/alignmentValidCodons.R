@@ -11,7 +11,6 @@
 #' @examples
 #' \dontrun{alignmentValidCodons <- function( inputAlignment = ali )}
 #' 
-#' @export
 alignmentValidCodons <- function( inputAlignment,
                                   cutEnd = TRUE,
                                   removeSTOPcodons = TRUE,

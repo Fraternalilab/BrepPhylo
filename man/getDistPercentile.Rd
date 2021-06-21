@@ -17,13 +17,3 @@ numeric vector, percentile in the distance-from-germline distribution over all c
 \description{
 Internal function used by \code{summariseGermlineDistance}.
 }
-\examples{
-\dontrun{
-# distFromGermline_table is the output of 'getGermlineDistance'
-# dist_median is a vector of median distance-from-germline calculated per clone
-dist_percentiles <- getDistPercentile( dist_median, 
-                                       percentiles = quantile(distFromGermline_table$distFromGermline, 
-                                                              probs = seq(0, 1, by = 0.01)) )
-}
-
-}

@@ -32,3 +32,19 @@ The function first summarises for each clone (optionally with other metadata col
 It then used this median distance to order the clones (from lowest - i.e. fewest mutations - to highest) and treat this as an 'expected' order of the clone in terms of mutational level, and calculate for each clone its 'actual' percentile of its median distance over all other clones.
 The discrepancy between the 'actual' and 'expected' percentiles returned by this function can subsequently be used to plot curves showing overall mutational level of a repertoire (see Example), or to seek for a quantification using the Germline Likeness metric (see \code{?getGermlineLikeness}).
 }
+\examples{
+\dontrun{
+# We have included in the package the pre-computed germline distances of 
+# sequences in the 'input' data frame, here use this as an example
+distFromGermline <- system.file( "extdata/input_GermlineDistances.csv", package = "BrepPhylo")
+distFromGermline <- read.csv(distFromGermline)
+
+# this summarise for each clone the median germline distance
+# and place each clone in the distribution of this median-distance over all clones
+germlineDistance_summary <- summariseGermlineDistance( 
+  distFromGermline, dist_column = "distFromGermline", 
+  cloneID_column = "CloneID", 
+  summarise_variables = c( "PatientID", "CloneID" ) 
+)
+}
+}

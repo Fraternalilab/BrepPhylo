@@ -18,7 +18,7 @@ cloneLineage(
   labelColumn = NULL,
   germlineSet = NULL,
   algorithm = "ClustalOmega",
-  plotType = "fan",
+  plotType = "phylogram",
   plotFormat = "png",
   gatherPlots = TRUE,
   useTempDir = TRUE,
@@ -31,7 +31,7 @@ cloneLineage(
 
 \item{outputFolder}{Parent folder, in which the clones are to be deposited.}
 
-\item{species}{Either "Human", "Bos_taurus", "Mus_musculus" or "Gallus_gallus" (default: "Human").}
+\item{species}{Either "Bos_taurus", "Gallus_gallus", "Homo_sapiens", "Mus_musculus", "Oryctolagus_cuniculus", "Sus_scrofa." (default: "Homo_sapiens").}
 
 \item{minCloneSize}{Minimum clone size to be considered, clones with less members are not processed (default: 10).}
 
@@ -64,7 +64,7 @@ Note, that this parameter must be \code{NULL} if parameter \code{whichClones} is
 
 \item{algorithm}{Either "ClustalOmega" or "ClustalW" (pretty slow, though), specifying the alignment algorithm (default: "ClustalOmega").}
 
-\item{plotType}{Either "phylogram", "cladogram", "fan" or "radial", specifying the layout of the phylogenetic tree (default: "fan").}
+\item{plotType}{Either "phylogram", "cladogram", "fan" or "radial", specifying the layout of the phylogenetic tree (default: "phylogram").}
 
 \item{plotFormat}{Either 'png' or 'pdf'. (default: 'png')}
 
@@ -89,7 +89,7 @@ Function to analyse B cell clone lineages, by producing an alignment and inferin
 \examples{
 \dontrun{ cloneLineage <- function( input = input,
                           outputFolder = "~/Desktop/out",
-                          species = "Human",
+                          species = "Homo_sapiens",
                           minCloneSize = 300,
                           colourSpecification = list( colours = list( "IgA" = "#0000FF",
                                                                       "IgG" = "#FF0000",

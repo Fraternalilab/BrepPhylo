@@ -14,7 +14,6 @@
 #' # TRUE
 #' is.valid.IsotypeSwitch( "A1", "A2" )
 #' 
-#' @export
 is.valid.IsotypeSwitch <- function( subclassParent, subclassChild )
 {
   if( grepl( "L|K", subclassParent ) | grepl( "L|K", subclassChild ) ){

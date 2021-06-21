@@ -77,7 +77,8 @@ library( BrepPhylo )
 
 # load the example input data frame
 input <- read.csv( system.file( "extdata/input.csv",
-                                package = "BrepPhylo" ) )
+                                package = "BrepPhylo" ),
+                   stringsAsFactors = FALSE )
 
 # select only the columns that are needed
 input <- input[ , c( "PatientID", "Class", "Subclass",
@@ -289,10 +290,10 @@ batch_results <- doBatchCloneAnalysis(
 # see above: doBatchCloneAnalysis returns a list in R which can be useful for 
 # further analysis. We can save it in a R data file, so we can load these 
 # separately later on (with readRDS()), without re-running the analysis.
-saveRDS(batch_results, '~/Desktop/BrepPhylo-example/batchAnalysis/CV325_batch_analysis.rds')
+saveRDS(batch_results, paste0(outputFolder, '/CV325_batch_analysis.rds'))
 ```
 
-The `doBatchCloneAnalysis` function is very efficient: for this example considering `r nrow( selected_input )` sequences from `r length( unique (selected_input$CloneID) )` clonotypes, it takes $\approx 5$ minutes to perform lineage analyses in one batch. This function can also be easily wrapped in e.g. a `for` loop to process clonotypes from multiple repertoires.
+The `doBatchCloneAnalysis` function is very efficient: for this example considering `r nrow( selected_input )` sequences from `r length( unique (selected_input$CloneID) )` clonotypes, it takes $\approx 5$ minutes to perform lineage analyses in one batch. This function can also be easily wrapped in e.g. a `for` loop to process clonotypes from multiple repertoires. **Note: ** That said, the computing time scales exponentially as the clone size increases, so be prepared to wait for hours/days if you have much more sequences to analyse than what is demonstrated here!
 
 ## Assessing Germline Likeness of a repertoire
 
@@ -323,18 +324,79 @@ Here, each clone is summarised and ranked by its median distance-from-germline m
 This phenomenon can be summarised as a metric: by quantifying the Area-under-curve (AUC) this metric quantifies what we call 'Germline Likeness', i.e. for this given repertoire, how much are the clonotypes similar to germline?
 
 ```{r}
+# set up a table containing metadata with which you want to
+# obtain a summary of Germline Likeness
+# here simply set up one column with PatientID
 patient_details <- data.frame( PatientID = unique( distFromGermline[, c("PatientID") ] ) )
 
-getGermlineLikeness( germlineDistance_summary,
-                     metadata_table = patient_details,
-                     summarise_variables = "PatientID" )
+germline_likeness <- getGermlineLikeness( 
+  germlineDistance_summary,
+  metadata_table = patient_details,
+  summarise_variables = "PatientID" 
+)
+tibble::as_tibble( germline_likeness )
 ```
+
 The higher this metric, the closer the clonotypes in general are to their corresponding germline. One can calculate the Germline Likeness metric over repertoires of many different donors and perform statistical comparisons on it to evaluate differences in mutational levels in repertoires sampled from different disease conditions.
 
 \newpage
 
+## Summarising CSR events in (groups of) repertoire data
+
+We have seen in the above that `BrepPhylo` is capable of analysing CSR events for a given lineage. `doBatchCloneAnalysis` gives detailed lists of CSR events observed in each lineage of the given batch of clones. We can further process such list and produce graphical summary of the distribution of CSR events, both in terms of the frequency of such events (broken down by the start- and end-points of the switches), and the distance-from-germline at which such switches occur. 
+
+```{r, fig.width=8, fig.height=4}
+# we provide doBatchCloneAnalysis results for data from the 
+# two individuals included here in this vignette
+cv233 <- system.file( "extdata/CV233_batch_analysis.rds", package = "BrepPhylo")
+cv325 <- system.file( "extdata/CV325_batch_analysis.rds", package = "BrepPhylo")
+cv233 <- readRDS( cv233 )
+cv325 <- readRDS( cv325 )
+
+# the getSummaryFromBatch function flattens the output to two
+# elements: a table containing  distance-from-germline (demonstrated 
+# above) and another table of all CSR events observed in lineages
+cv233 <- getSummaryFromBatch( cv233 )
+cv233 <- cv233$csr_events
+cv325 <- getSummaryFromBatch( cv325 )
+cv325 <- cv325$csr_events
+# just add an extra column with PatientID
+cv233$PatientID <- "CV233"
+cv325$PatientID <- "CV325"
+# we can combine the two tables
+csr_details <- rbind( cv233, cv325 )
+csr_summary <- summariseCSR( csr_details, 
+                             dist_column = "distFromGermline", 
+                             cloneID_column = "CloneID",
+                             summarise_variables = "PatientID")
+
+# next we can plot a graphical summary
+# first set the order of the isotypes so that they reflect
+# the actual physical order on the genome (hence the 
+# order possible in CSR)
+csr_summary$startIsotype <- factor(csr_summary$startIsotype,
+                                   levels = c("IgM", "IgG3", "IgG1", "IgA1",
+                                              "IgG2", "IgG4", "IgE", "IgA2"),
+                                   labels = c("M", "G3", "G1", "A1", "G2",
+                                              "G4", "E", "A2"))
+csr_summary$endIsotype <- factor(csr_summary$endIsotype,
+                                 levels = c("IgM", "IgG3", "IgG1", "IgA1",
+                                            "IgG2", "IgG4", "IgE", "IgA2"),
+                                 labels = c("M", "G3", "G1", "A1", "G2",
+                                            "G4", "E", "A2"))
+
+# plot it; it uses ggplot2 so you can extend this with ggplot2 functions
+# here separate into different panels using the column 'PatientID'
+library(ggplot2)
+plotCSRsummary( csr_summary ) + facet_wrap(~ PatientID)
+```
+
+This graphical summary shows both the amount (the size of bubbles) of CSR and the distance-from-germline (colour in the heat-scale fill of the bubbles) at which CSR occurs, separate by subclasses. We can see here that a large amount of switches to IgM to IgG1 occurs in patient CV233, at a very close distance from the germline (i.e. very few mutations have been accumulated at the time of the switch). In the other patient there appear to have a higher mutational rate, and more switches to IgG2. This graphical summary allows us to interpret the complex CSR dynamics in a simple bubble plot.
+
+\newpage
+
 # Appendix
-![Performance benchmark of `cloneLineage()` run on three clones of different sizes: Computing time on a 4GB iMac 27](figures/phylogenetic/cloneLineage_benchmark.png)
+![Performance benchmark of `cloneLineage()` run on three clones of different sizes: Computing time on a 4GB iMac (model circa 2014)](figures/phylogenetic/cloneLineage_benchmark.png)
 
 \newpage
 

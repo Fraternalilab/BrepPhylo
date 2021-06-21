@@ -3,8 +3,6 @@
 #' @param tree Input tree, type \code{phylo}.
 #' @param digits Number of digits to consider (default: 4).
 #'
-#'
-#' @export getDistancesFromTree
 #' @importFrom adephylo distTips
 getDistancesFromTree <- function( tree,
                                digits = 4 )

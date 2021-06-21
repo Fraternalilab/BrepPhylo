@@ -16,3 +16,11 @@ install_github("Fraternalilab/BrepPhylo", ref = "main", dependencies = TRUE)
 ## Examples
 
 Vignettes in [HTML](http://htmlpreview.github.io/?https://github.com/Fraternalilab/BrepPhylo/blob/main/vignettes/phylogenetic.html) and [PDF](https://github.com/Fraternalilab/BrepPhylo/blob/main/vignettes/phylogenetic.pdf) formats are provided here.
+
+## Contact
+
+Joseph Ng (@josef0731). For issues with this package please open an issue in this github repository.
+
+## Acknowledgement
+
+To members of the Dunn-Walters lab, University of Surrey for developing ideas to implement in the package, and to Christian Margreitter (@percuisses) for building the initial version of the package.
