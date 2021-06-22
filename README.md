@@ -13,6 +13,8 @@ require(devtools)
 install_github("Fraternalilab/BrepPhylo", ref = "main", dependencies = TRUE)
 ```
 
+To run the examples in the vignettes the `dnapars` program from the [`PHYLIP`](https://evolution.genetics.washington.edu/phylip.html) package is required. An executable of the program is shipped with the package; **this works for Linux systems**. For other operating systems please follow instructions from PHYLIP to download and install the program.
+
 ## Examples
 
 Vignettes in [HTML](http://htmlpreview.github.io/?https://github.com/Fraternalilab/BrepPhylo/blob/main/vignettes/phylogenetic.html) and [PDF](https://github.com/Fraternalilab/BrepPhylo/blob/main/vignettes/phylogenetic.pdf) formats are provided here.

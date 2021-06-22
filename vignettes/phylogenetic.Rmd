@@ -4,12 +4,12 @@ author:
   - "Joseph Ng"
 date: '`r Sys.Date()`'
 output:
-  pdf_document:
-    fig_width: 12
-    number_sections: yes
   html_document:
     fig_width: 12
     highlight: pygments
+    number_sections: yes
+  pdf_document:
+    fig_width: 12
     number_sections: yes
 csl: nar-webserver-issue.csl
 bibliography: bibliography.bib
@@ -55,7 +55,19 @@ install_github("Fraternalilab/BrepPhylo", ref = "main", dependencies = TRUE)
 
 The above should install `BrepPhylo` itself as well as its dependencies. You might encounter issues related to the package `sf` which is the dependency of one of the packages we import. Following [these instructions](https://r-spatial.github.io/sf/#installing) from `sf` to resolve these issues.
 
-`BrepPhylo` also uses phylogenetics packages [`PHYLIP`](https://evolution.gs.washington.edu/phylip/) and [`IgPhyML`](https://igphyml.readthedocs.io/en/latest/overview.html). Please follow the respective documentation pages to install these packages if you wish to use them through `BrepPhylo` functions. We included the relevant `PHYLIP` executable (`dnapars`) we used in `BrepPhylo` in the package so you don't have to install this by yourself; this executable should work on MacOS and Linux systems. See examples below for instructions on how to source this executable.
+`BrepPhylo` also uses phylogenetics packages [`PHYLIP`](https://evolution.gs.washington.edu/phylip/) and [`IgPhyML`](https://igphyml.readthedocs.io/en/latest/overview.html). Please follow the respective documentation pages to install these packages if you wish to use them through `BrepPhylo` functions. 
+
+## MacOS
+
+Please follow the above weblinks to download and install packages. Please be aware that MacOS may block the use of these programs as they require access to the Terminal. You can allow these via 'Security & Privacy' in the System Preferences settings.
+
+## Linux
+
+**For linux systems**, we included the relevant `PHYLIP` executable (`dnapars`) we used in `BrepPhylo` in the package so you don't have to install this by yourself. See examples below for instructions on how to source this executable.
+
+## Windows
+
+We have not tested the use of `PHYLIP` and `IgPhyML` in Windows systems. Please contact us if there are issues; we are happy to help but cannot guarantee these and our package will work as intended since we develop and test our packages on Linux and MacOS systems!
 
 # Lineage analysis of a small number of B cell clonotypes
 
@@ -133,7 +145,7 @@ The `cloneLineage()` function generates the following files in a specified folde
   + File "clone_ID.png", a PNG of the resulting tree.
   + File "clone_ID.tree", the generated tree in Newick format.
   + File "clone_ID_IgPhyML_fit.stats", holding the output of the fitting step in the tree generation using function `IgPhyML` (only if used).
-  + File(s) "clone_ID_part_X.pdf", reporting the multiple sequence alignment in PDF format (optional).
+  + File(s) "clone_ID_part_X.pdf", reporting the multiple sequence alignment in PDF format (optional). An example is given in Figure 2.
   
 * A folder called "plots", which holds a copy of all the tree pictures generated.
 * File "colour_code.csv", which holds the colour code used in the pictures and alignments.
@@ -150,6 +162,9 @@ selected_input <- input[ which( input$PatientID == "CV233" ), ]
 outputFolder <- path.expand( "~/Desktop/BrepPhylo-example/cloneLineage" )
 dir.create( outputFolder, showWarnings = FALSE )
 
+# The BrepPhylo package is shipped with the dnapars executable;
+# this works on Linux system. For other OS please download and install
+# following PHYLIP's instructions!
 dnapars_executable <- system.file( "exe/dnapars", package = "BrepPhylo" )
 
 # run the tree reconstruction
@@ -183,7 +198,9 @@ knitr::include_graphics( paste0( path.expand( "~/Desktop/BrepPhylo-example/clone
 
 ![Clone 1548, 109 members, sequence alignment (excerpt)](figures/phylogenetic/clone_1548_part_1.png)
 
-One can see there is a variability in terms of how close each sequence is to the root (depicted bottom left of the tree) of the tree, i.e. the germline sequence. This distance signifies the similarity of each sequence to germline: a larger distance means a lower similarity, implying more mutations could be observed in this sequence. 
+\newpage
+
+One can see there is a variability in terms of how close each sequence is to the root (depicted bottom left of Figure 1) of the tree, i.e. the germline sequence. This distance signifies the similarity of each sequence to germline: a larger distance means a lower similarity, implying more mutations could be observed in this sequence. 
 
 The function `getGermlineDistance` calculates the distance-from-germline for all observations in a lineage:
 
@@ -228,7 +245,7 @@ arborescence <- cloneArborescence( clone = clone,
                                    outputFolder = outputFolder )
 ```
 
-```{r, echo = FALSE, fig.cap = "Clone 188, 53 members, arborescence tree (simple model)", out.width = "100%"}
+```{r, echo = FALSE, fig.cap = "Clone 188, 53 members, arborescence tree (dnapars model)", out.width = "100%"}
 knitr::include_graphics( paste0( path.expand( "~/Desktop/BrepPhylo-example" ), "/arborescence/clone_1548_arbo.png" ) )
 ```
 
@@ -338,8 +355,6 @@ tibble::as_tibble( germline_likeness )
 ```
 
 The higher this metric, the closer the clonotypes in general are to their corresponding germline. One can calculate the Germline Likeness metric over repertoires of many different donors and perform statistical comparisons on it to evaluate differences in mutational levels in repertoires sampled from different disease conditions.
-
-\newpage
 
 ## Summarising CSR events in (groups of) repertoire data
 
