@@ -25,4 +25,4 @@ Joseph Ng (@josef0731). For issues with this package please open an issue in thi
 
 ## Acknowledgement
 
-To members of the Dunn-Walters lab, University of Surrey for developing ideas to implement in the package, and to Christian Margreitter (@percuisses) for building the initial version of the package.
+To members of the Dunn-Walters lab, University of Surrey for developing ideas to implement in the package, and to Christian Margreitter ([@CMargreitter](https://github.com/CMargreitter)) for building the initial version of the package.
