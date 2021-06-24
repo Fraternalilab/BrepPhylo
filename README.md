@@ -21,7 +21,7 @@ Vignettes in [HTML](http://htmlpreview.github.io/?https://github.com/Fraternalil
 
 ## Contact
 
-Joseph Ng (@josef0731). For issues with this package please open an issue in this github repository.
+Joseph Ng ([@josef0731](https://github.com/josef0731)). For issues with this package please open an issue in this github repository.
 
 ## Acknowledgement
 
