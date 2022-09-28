@@ -25,7 +25,7 @@ getArborescence <- function( distances,
   reticulate::source_python( file = paste0( system.file( package = "BrepPhylo" ), "/python/edmond_arborescence.py" ) )
 
   # check "distances" and transform into a full matrix, if necessary
-  if( class( distances ) == "dist" )
+  if( length( class( distances ) ) == 1 && class( distances ) == "dist" )
     distances <- as.matrix( distances )
 
   # check the input
