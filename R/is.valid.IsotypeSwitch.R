@@ -24,10 +24,12 @@ is.valid.IsotypeSwitch <- function( subclassParent, subclassChild )
   # prepare the order vector
   orderSubclasses <- c( "germline", 'M', 'D', "G3", "G1", "A1", "G2", "G4", 'E', "A2" )
 
-  # cut off an "Ig" substring, if necessary
+  # cut off an "Ig/IGH" substring, if necessary
   subclassParent <- gsub( pattern = "Ig", replacement = "", x = subclassParent )
   subclassChild <- gsub( pattern = "Ig", replacement = "", x = subclassChild )
-
+  subclassParent <- gsub( pattern = "IGH", replacement = "", x = subclassParent )
+  subclassChild <- gsub( pattern = "IGH", replacement = "", x = subclassChild )
+  
   # check input
   if( !( subclassParent %in% orderSubclasses ) ||
       !( subclassChild %in% orderSubclasses ) )
