@@ -129,6 +129,7 @@ doBatchCloneAnalysis <- function( inputDF,
       # show progress
       cat( paste0( "Clone ", vecCloneIDs[ iClone ], " lineage tree has been constructed.\n" ) )
       
+      tree <- paste0( outputf, "/clone_", vecCloneIDs[ iClone ], "/clone_", vecCloneIDs[ iClone ], ".tree" )
       # make arborescence tree
       if( makeArboTree ){
         clone <- read.csv( paste0( outputf, "/clone_", vecCloneIDs[ iClone ], "/clone_", vecCloneIDs[ iClone ], ".csv" ) )
@@ -136,7 +137,6 @@ doBatchCloneAnalysis <- function( inputDF,
           # no sequences have annotated subclass. skip arborescence tree
           next
         }
-        tree <- paste0( outputf, "/clone_", vecCloneIDs[ iClone ], "/clone_", vecCloneIDs[ iClone ], ".tree" )
         arborescence <- cloneArborescence( clone = clone,
                                            cloneID = vecCloneIDs[ iClone ],
                                            columnSeqID = label_column,
